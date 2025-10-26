@@ -16,12 +16,6 @@ module time_auction::time_slot {
 
     // ====== Structs ======
 
-    /// Capability that proves ownership of time being sold
-    public struct TimeOwnerCap has key, store {
-        id: UID,
-        owner: address,
-    }
-
     /// Represents a 15-minute time slot that can be auctioned
     public struct TimeSlot has key, store {
         id: UID,
@@ -77,15 +71,9 @@ module time_auction::time_slot {
 
     // ====== Initialization ======
 
-    /// Module initializer - creates TimeOwnerCap for deployer
-    fun init(ctx: &mut TxContext) {
-        transfer::transfer(
-            TimeOwnerCap {
-                id: object::new(ctx),
-                owner: ctx.sender(),
-            },
-            ctx.sender()
-        );
+    /// Module initializer - no special initialization needed
+    fun init(_ctx: &mut TxContext) {
+        // Pure permissionless system - no caps needed
     }
 
     #[test_only]
@@ -96,17 +84,17 @@ module time_auction::time_slot {
     // ====== Core Functions ======
 
     /// Create a new time slot auction
-    /// Only the TimeOwnerCap holder can create slots
+    /// ANYONE can create slots - no cap required (pure dystopia)
+    /// Auction ends when the slot starts (can't bid after time begins)
     public fun create_time_slot(
-        _cap: &TimeOwnerCap,
         start_time: u64,
         min_bid: u64,
-        auction_duration_ms: u64,
+        _auction_duration_ms: u64, // Ignored - auction always ends at start_time
         clock: &Clock,
         ctx: &mut TxContext
     ) {
         let slot_id = object::new(ctx);
-        let current_time = clock::timestamp_ms(clock);
+        let _current_time = clock::timestamp_ms(clock);
 
         let slot = TimeSlot {
             id: slot_id,
@@ -116,7 +104,7 @@ module time_auction::time_slot {
             current_bidder: option::none(),
             current_bid: 0,
             min_bid,
-            auction_end: current_time + auction_duration_ms,
+            auction_end: start_time, // Auction ends when slot starts
             escrow: balance::zero(),
             instructions: option::none(),
             claimed: false,
@@ -135,6 +123,7 @@ module time_auction::time_slot {
         // Share the object so anyone can bid
         transfer::share_object(slot);
     }
+
 
     /// Place a bid on a time slot
     public fun place_bid(
@@ -307,20 +296,4 @@ module time_auction::time_slot {
         &slot.instructions
     }
 
-    // ====== Admin Functions ======
-
-    /// Time owner can create additional TimeOwnerCaps
-    public fun mint_owner_cap(
-        _cap: &TimeOwnerCap,
-        recipient: address,
-        ctx: &mut TxContext
-    ) {
-        transfer::transfer(
-            TimeOwnerCap {
-                id: object::new(ctx),
-                owner: recipient,
-            },
-            recipient
-        );
-    }
 }

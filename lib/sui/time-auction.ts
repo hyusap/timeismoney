@@ -37,14 +37,12 @@ export interface AuctionEndedEvent {
 }
 
 /**
- * Create a new time slot auction
- * @param ownerCapId - TimeOwnerCap object ID
+ * Create a new time slot auction (NO CAP REQUIRED - anyone can sell their time!)
  * @param startTime - Unix timestamp (ms) when slot starts
  * @param minBid - Minimum bid in MIST (1 SUI = 1_000_000_000 MIST)
  * @param auctionDurationMs - How long the auction runs
  */
 export function createTimeSlotTx(
-  ownerCapId: string,
   startTime: number,
   minBid: bigint,
   auctionDurationMs: number
@@ -54,7 +52,6 @@ export function createTimeSlotTx(
   tx.moveCall({
     target: `${PACKAGE_ID}::time_slot::create_time_slot`,
     arguments: [
-      tx.object(ownerCapId),
       tx.pure.u64(startTime),
       tx.pure.u64(minBid),
       tx.pure.u64(auctionDurationMs),
@@ -232,49 +229,35 @@ export async function getTimeSlotInfo(
 }
 
 /**
- * Query all time slots (active auctions)
+ * Query time slots by listening to SlotCreated events
+ * This is the recommended approach for querying shared objects
  * @param client - Sui client
- * @param timeOwner - Optional filter by time owner address
+ * @param limit - Max number of slots to fetch
  */
 export async function queryTimeSlots(
   client: SuiClient,
-  timeOwner?: string
+  limit: number = 100
 ): Promise<TimeSlotInfo[]> {
   try {
-    const result = await client.queryObjects({
-      filter: {
-        StructType: `${PACKAGE_ID}::time_slot::TimeSlot`,
+    // Query SlotCreated events to find all time slot IDs
+    const events = await client.queryEvents({
+      query: {
+        MoveEventType: `${PACKAGE_ID}::time_slot::SlotCreated`,
       },
-      options: {
-        showContent: true,
-      },
+      limit,
+      order: 'descending',
     });
 
     const slots: TimeSlotInfo[] = [];
 
-    for (const obj of result.data) {
-      if (obj.data?.content?.dataType === 'moveObject') {
-        const fields = obj.data.content.fields as any;
-
-        // Filter by owner if specified
-        if (timeOwner && fields.time_owner !== timeOwner) {
-          continue;
+    // Fetch details for each slot
+    for (const event of events.data) {
+      const fields = event.parsedJson as any;
+      if (fields.slot_id) {
+        const slotInfo = await getTimeSlotInfo(client, fields.slot_id);
+        if (slotInfo) {
+          slots.push(slotInfo);
         }
-
-        slots.push({
-          objectId: obj.data.objectId,
-          startTime: BigInt(fields.start_time),
-          durationMs: BigInt(fields.duration_ms),
-          timeOwner: fields.time_owner,
-          currentBidder: fields.current_bidder?.vec?.[0] || null,
-          currentBid: BigInt(fields.current_bid),
-          minBid: BigInt(fields.min_bid),
-          auctionEnd: BigInt(fields.auction_end),
-          instructions: fields.instructions?.vec?.[0]
-            ? new Uint8Array(fields.instructions.vec[0])
-            : null,
-          claimed: fields.claimed,
-        });
       }
     }
 
@@ -284,6 +267,50 @@ export async function queryTimeSlots(
     return slots;
   } catch (error) {
     console.error('Error querying time slots:', error);
+    return [];
+  }
+}
+
+/**
+ * Query time slots by owner address
+ * @param client - Sui client
+ * @param owner - Time owner address
+ * @param limit - Max number of slots to fetch
+ */
+export async function queryTimeSlotsByOwner(
+  client: SuiClient,
+  owner: string,
+  limit: number = 100
+): Promise<TimeSlotInfo[]> {
+  try {
+    // Query SlotCreated events filtered by owner
+    const events = await client.queryEvents({
+      query: {
+        MoveEventType: `${PACKAGE_ID}::time_slot::SlotCreated`,
+      },
+      limit,
+      order: 'descending',
+    });
+
+    const slots: TimeSlotInfo[] = [];
+
+    // Fetch details for each slot and filter by owner
+    for (const event of events.data) {
+      const fields = event.parsedJson as any;
+      if (fields.slot_id && fields.time_owner === owner) {
+        const slotInfo = await getTimeSlotInfo(client, fields.slot_id);
+        if (slotInfo) {
+          slots.push(slotInfo);
+        }
+      }
+    }
+
+    // Sort by start time
+    slots.sort((a, b) => Number(a.startTime - b.startTime));
+
+    return slots;
+  } catch (error) {
+    console.error('Error querying time slots by owner:', error);
     return [];
   }
 }
@@ -360,12 +387,18 @@ export async function getBidHistory(
   }
 }
 
-// Utility: Convert MIST to SUI
-export function mistToSui(mist: bigint): number {
-  return Number(mist) / 1_000_000_000;
+// Utility: Convert MIST to dollars (insane conversion rate)
+// 1 SUI (1,000,000,000 MIST) = $0.0001
+// So 1 MIST = $0.0000000001
+export function mistToDollars(mist: bigint): number {
+  return Number(mist) / 10_000_000_000_000;
 }
 
-// Utility: Convert SUI to MIST
-export function suiToMist(sui: number): bigint {
-  return BigInt(Math.floor(sui * 1_000_000_000));
+// Utility: Convert dollars to MIST
+export function dollarsToMist(dollars: number): bigint {
+  return BigInt(Math.floor(dollars * 10_000_000_000_000));
 }
+
+// Legacy exports for backwards compatibility
+export const mistToSui = mistToDollars;
+export const suiToMist = dollarsToMist;

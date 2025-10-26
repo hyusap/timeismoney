@@ -117,6 +117,12 @@ export default function Home() {
             >
               Browse All Streams
             </Link>
+            <Link
+              href="/auctions"
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
+            >
+              Time Auctions
+            </Link>
           </div>
         </div>
       </div>

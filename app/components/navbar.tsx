@@ -59,7 +59,7 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav className="bg-white text-black p-4">
+    <nav className="text-black p-4" style={{ background: '#e0e5ec' }}>
       <div className="mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-6">
           <Link
@@ -67,12 +67,12 @@ export function Navbar() {
             className="text-2xl font-semibold flex items-center space-x-2"
           >
             <div className="w-7 h-7 bg-black rounded-full"></div>
-            <span>TIM</span>
+            <p>Human Capital</p>
           </Link>
 
           <Link
             href="/stream"
-            className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md transition duration-200"
+            className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md transition duration-200"
           >
             Start Streaming
           </Link>
@@ -83,7 +83,7 @@ export function Navbar() {
           <div className="relative wallet-dropdown">
             <button
               onClick={() => setShowWalletDropdown(!showWalletDropdown)}
-              className="flex items-center space-x-2 rounded-md border border-gray-300 px-3 py-2 hover:bg-gray-50 transition"
+              className="flex items-center space-x-2 rounded-md border border-gray-400 px-3 py-2 hover:bg-gray-200 transition"
             >
               {account ? (
                 <>
@@ -100,7 +100,7 @@ export function Navbar() {
 
             {/* Dropdown Menu */}
             {showWalletDropdown && (
-              <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+              <div className="absolute right-0 mt-2 w-80 border border-gray-300 rounded-lg shadow-lg z-50" style={{ background: '#e0e5ec' }}>
                 {account ? (
                   <>
                     <div className="p-4 border-b border-gray-200">
@@ -142,7 +142,7 @@ export function Navbar() {
                         }
                         setShowWalletDropdown(false);
                       }}
-                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                      className="w-full bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition"
                     >
                       Connect Wallet
                     </button>

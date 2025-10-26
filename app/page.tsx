@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { StreamPreview } from "./components/stream-preview";
 
-import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
-
 interface ActiveRoom {
   name: string;
   numParticipants: number;
@@ -13,7 +11,6 @@ interface ActiveRoom {
 }
 
 export default function Home() {
-  const account = useCurrentAccount();
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,21 +42,15 @@ export default function Home() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen" style={{ background: '#e0e5ec' }}>
       <div className="max-w-7xl mx-auto p-6">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Live Streams</h1>
-          <p className="text-xl text-gray-300">
-            {isLoading
-              ? "Loading streams..."
-              : `${activeRooms.length} active streams`}
-          </p>
-          {account && (
+          {/* {account && (
             <div className="text-white">
               <p>Connected to {account.address}</p>
             </div>
-          )}
-          <ConnectButton />
+          )} */}
+          {/* <ConnectButton /> */}
         </div>
 
         {isLoading ? (
@@ -103,7 +94,7 @@ export default function Home() {
         )}
 
         {/* Quick actions */}
-        <div className="mt-12 text-center">
+        {/* <div className="mt-12 text-center">
           <div className="flex justify-center space-x-4">
             <Link
               href="/stream"
@@ -111,20 +102,8 @@ export default function Home() {
             >
               Start Your Stream
             </Link>
-            <Link
-              href="/viewer"
-              className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-md font-medium transition duration-200"
-            >
-              Browse All Streams
-            </Link>
-            <Link
-              href="/auctions"
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
-            >
-              Time Auctions
-            </Link>
           </div>
-        </div>
+        </div> */}
       </div>
     </div>
   );

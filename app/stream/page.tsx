@@ -25,6 +25,7 @@ import {
   CLOCK_OBJECT_ID,
 } from "@/lib/sui/time-auction";
 import { Transaction } from "@mysten/sui/transactions";
+import { RadialSelector } from "../components/radial-selector";
 
 interface TimeSlotMonitorResponse {
   hasActiveSlot: boolean;
@@ -265,18 +266,21 @@ export default function StreamPage() {
 
   if (!authToken || !roomToken) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center p-6">
-        <div className="bg-gray-900 border-2 border-red-600 rounded-lg p-8 max-w-2xl w-full">
-          <h1 className="text-4xl font-bold text-red-500 mb-2 text-center">
-            START STREAMING
+      <div
+        className="min-h-screen flex items-center justify-center p-6"
+        style={{ background: "#e0e5ec" }}
+      >
+        <div className="max-w-2xl w-full">
+          <h1 className="text-8xl leading-none font-medium text-black tracking-tight mb-2 text-center">
+            Sell Your Time
           </h1>
-          <p className="text-gray-400 text-center mb-8 italic">
+          <p className="text-gray-500 text-center mb-8">
             Sell your time, live on camera
           </p>
 
           {!isConnected ? (
             <div className="space-y-6">
-              <div className="text-center text-gray-300 mb-6">
+              <div className="text-center text-gray-600 mb-6">
                 Connect your Sui wallet to begin
               </div>
               <div className="flex justify-center">
@@ -285,81 +289,60 @@ export default function StreamPage() {
             </div>
           ) : !hasMinedNFTs ? (
             <div className="space-y-6">
-              <div className="text-center text-gray-300 mb-2">
+              <div className="text-center text-gray-600 mb-4">
                 Wallet Connected
               </div>
-              <div className="bg-black text-white font-mono text-xs p-3 rounded border border-gray-600 text-center break-all">
+              <div className="font-mono text-xs p-3 text-center break-all text-gray-500">
                 {walletAddress}
               </div>
 
               {isCheckingNFTs ? (
-                <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-3"></div>
-                  <p className="text-gray-300">Checking for minted NFTs...</p>
+                <div className="p-6 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-3 border-gray-400"></div>
+                  <p className="text-gray-600">Checking for minted NFTs...</p>
                 </div>
               ) : (
                 <>
-                  <div className="bg-red-900/30 border border-red-600 rounded-lg p-4 text-center">
-                    <h3 className="text-red-400 font-bold mb-2">
-                      ❌ NO TIME SLOTS FOUND
-                    </h3>
-                    <p className="text-gray-300 text-sm">
+                  <div className="py-4 text-center">
+                    <p className="text-gray-600 text-sm mb-6">
                       You have {nftCount} upcoming time slots. You must mint
                       NFTs before streaming.
                     </p>
-                  </div>
 
-                  <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
-                    <h3 className="text-yellow-400 font-bold mb-2">
-                      ⚠️ STEP 1: MINT TIME SLOTS
-                    </h3>
-                    <p className="text-gray-300 text-sm mb-4">
-                      Each slot is 15 minutes. Viewers will bid on your time,
-                      and the highest bidder controls what you do.
-                    </p>
-
-                    <div className="mb-4">
-                      <label className="block text-gray-300 mb-2 font-semibold">
-                        Stream Duration (hours)
-                      </label>
-                      <input
-                        type="number"
+                    <div className="mb-8">
+                      <RadialSelector
                         value={streamDurationHours}
-                        onChange={(e) =>
-                          setStreamDurationHours(Number(e.target.value))
-                        }
-                        min="1"
-                        max="12"
-                        className="w-full bg-gray-800 text-white border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-red-500"
+                        onChange={setStreamDurationHours}
+                        min={1}
+                        max={12}
+                        label="Stream Duration"
+                        unit="hours"
+                        description={`Will create ${
+                          streamDurationHours * 60
+                        } time slots (1 min each)`}
                       />
-                      <p className="text-gray-500 text-sm mt-1">
-                        Will create {streamDurationHours * 60} time slots (1 min
-                        each)
-                      </p>
                     </div>
 
-                    <div className="bg-red-900/30 border border-red-600 rounded p-3 mb-4">
-                      <p className="text-red-300 text-xs">
-                        <strong>Warning:</strong> Once minted, these slots will
-                        be auctioned immediately. Winners can watch you and give
-                        you instructions during their time slot.
-                      </p>
-                    </div>
+                    <p className="text-gray-500 text-xs mb-6">
+                      Once minted, these slots will be auctioned immediately.
+                      Winners can watch you and give you instructions during
+                      their time slot.
+                    </p>
 
                     <button
                       onClick={mintNFTsAndStartStream}
                       disabled={isMinting}
-                      className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white font-bold py-3 rounded-lg transition duration-200 mb-3"
+                      className="w-full font-medium py-3 rounded transition duration-200 mb-3 bg-black text-white hover:bg-gray-800 disabled:bg-gray-400"
                     >
                       {isMinting
                         ? "Minting NFTs & Starting Stream..."
-                        : "MINT NFTs & START STREAM"}
+                        : "Clock In"}
                     </button>
 
                     <button
                       onClick={checkForNFTs}
                       disabled={isCheckingNFTs}
-                      className="w-full bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white text-sm font-medium py-2 rounded transition duration-200"
+                      className="w-full text-sm font-medium py-2 transition duration-200 text-gray-500 hover:text-gray-700 disabled:text-gray-300"
                     >
                       {isCheckingNFTs
                         ? "Checking..."
@@ -372,22 +355,20 @@ export default function StreamPage() {
           ) : (
             <div className="space-y-6">
               <div className="text-center">
-                <div className="bg-green-900/30 border border-green-600 rounded-lg p-4 mb-6">
-                  <p className="text-green-400 font-bold text-lg">
-                    ✅ {nftCount} TIME SLOTS FOUND
-                  </p>
-                  <p className="text-gray-300 text-sm mt-1">
-                    Your time slots are ready for auction
-                  </p>
-                </div>
+                <p className="text-gray-700 font-medium text-lg mb-1">
+                  ✅ {nftCount} TIME SLOTS FOUND
+                </p>
+                <p className="text-gray-500 text-sm mb-6">
+                  Your time slots are ready for auction
+                </p>
 
-                <div className="bg-black text-white font-mono text-xs p-3 rounded border border-gray-600 mb-6 break-all">
+                <div className="font-mono text-xs p-3 mb-6 break-all text-gray-500">
                   {walletAddress}
                 </div>
 
                 <button
                   onClick={connectToRoom}
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg text-xl transition duration-200"
+                  className="w-full font-medium py-4 rounded text-xl transition duration-200 bg-black text-white hover:bg-gray-800"
                 >
                   🎥 START STREAMING NOW
                 </button>
@@ -395,7 +376,7 @@ export default function StreamPage() {
                 <button
                   onClick={checkForNFTs}
                   disabled={isCheckingNFTs}
-                  className="w-full mt-2 text-gray-400 hover:text-gray-200 text-sm py-2 transition duration-200"
+                  className="w-full mt-2 text-sm py-2 transition duration-200 text-gray-500 hover:text-gray-700 disabled:text-gray-300"
                 >
                   {isCheckingNFTs ? "Checking..." : "🔄 Refresh NFT Count"}
                 </button>

@@ -5,7 +5,7 @@ module time_auction::time_slot_tests {
     use sui::coin::{Self, Coin};
     use sui::sui::SUI;
     use sui::test_utils;
-    use time_auction::time_slot::{Self, TimeOwnerCap, TimeSlot};
+    use time_auction::time_slot::{Self, TimeSlot};
 
     const OWNER: address = @0xA;
     const BIDDER1: address = @0xB;
@@ -26,7 +26,6 @@ module time_auction::time_slot_tests {
         let mut scenario = ts::begin(OWNER);
         let clock = setup_clock(&mut scenario);
 
-        // Init module - creates TimeOwnerCap for OWNER
         ts::next_tx(&mut scenario, OWNER);
         {
             time_slot::test_init(ts::ctx(&mut scenario));
@@ -35,16 +34,16 @@ module time_auction::time_slot_tests {
         // Create a time slot
         ts::next_tx(&mut scenario, OWNER);
         {
-            let cap = ts::take_from_sender<TimeOwnerCap>(&scenario);
+            
             time_slot::create_time_slot(
-                &cap,
+                
                 SLOT_START,
                 MIN_BID,
                 AUCTION_DURATION,
                 &clock,
                 ts::ctx(&mut scenario)
             );
-            ts::return_to_sender(&scenario, cap);
+            
         };
 
         // Verify slot was created and shared
@@ -80,16 +79,16 @@ module time_auction::time_slot_tests {
 
         ts::next_tx(&mut scenario, OWNER);
         {
-            let cap = ts::take_from_sender<TimeOwnerCap>(&scenario);
+            
             time_slot::create_time_slot(
-                &cap,
+                
                 SLOT_START,
                 MIN_BID,
                 AUCTION_DURATION,
                 &clock,
                 ts::ctx(&mut scenario)
             );
-            ts::return_to_sender(&scenario, cap);
+            
         };
 
         // Place a bid
@@ -130,16 +129,16 @@ module time_auction::time_slot_tests {
 
         ts::next_tx(&mut scenario, OWNER);
         {
-            let cap = ts::take_from_sender<TimeOwnerCap>(&scenario);
+            
             time_slot::create_time_slot(
-                &cap,
+                
                 SLOT_START,
                 MIN_BID,
                 AUCTION_DURATION,
                 &clock,
                 ts::ctx(&mut scenario)
             );
-            ts::return_to_sender(&scenario, cap);
+            
         };
 
         // BIDDER1 places first bid
@@ -193,16 +192,16 @@ module time_auction::time_slot_tests {
 
         ts::next_tx(&mut scenario, OWNER);
         {
-            let cap = ts::take_from_sender<TimeOwnerCap>(&scenario);
+            
             time_slot::create_time_slot(
-                &cap,
+                
                 SLOT_START,
                 MIN_BID,
                 AUCTION_DURATION,
                 &clock,
                 ts::ctx(&mut scenario)
             );
-            ts::return_to_sender(&scenario, cap);
+            
         };
 
         // Place bid
@@ -250,16 +249,16 @@ module time_auction::time_slot_tests {
 
         ts::next_tx(&mut scenario, OWNER);
         {
-            let cap = ts::take_from_sender<TimeOwnerCap>(&scenario);
+            
             time_slot::create_time_slot(
-                &cap,
+                
                 SLOT_START,
                 MIN_BID,
                 AUCTION_DURATION,
                 &clock,
                 ts::ctx(&mut scenario)
             );
-            ts::return_to_sender(&scenario, cap);
+            
         };
 
         // Place bid
@@ -304,16 +303,16 @@ module time_auction::time_slot_tests {
 
         ts::next_tx(&mut scenario, OWNER);
         {
-            let cap = ts::take_from_sender<TimeOwnerCap>(&scenario);
+            
             time_slot::create_time_slot(
-                &cap,
+                
                 SLOT_START,
                 MIN_BID,
                 AUCTION_DURATION,
                 &clock,
                 ts::ctx(&mut scenario)
             );
-            ts::return_to_sender(&scenario, cap);
+            
         };
 
         // Place bid
@@ -355,16 +354,16 @@ module time_auction::time_slot_tests {
 
         ts::next_tx(&mut scenario, OWNER);
         {
-            let cap = ts::take_from_sender<TimeOwnerCap>(&scenario);
+            
             time_slot::create_time_slot(
-                &cap,
+                
                 SLOT_START,
                 MIN_BID,
                 AUCTION_DURATION,
                 &clock,
                 ts::ctx(&mut scenario)
             );
-            ts::return_to_sender(&scenario, cap);
+            
         };
 
         // Try to bid below minimum
@@ -395,16 +394,16 @@ module time_auction::time_slot_tests {
 
         ts::next_tx(&mut scenario, OWNER);
         {
-            let cap = ts::take_from_sender<TimeOwnerCap>(&scenario);
+            
             time_slot::create_time_slot(
-                &cap,
+                
                 SLOT_START,
                 MIN_BID,
                 AUCTION_DURATION,
                 &clock,
                 ts::ctx(&mut scenario)
             );
-            ts::return_to_sender(&scenario, cap);
+            
         };
 
         // Advance past auction end

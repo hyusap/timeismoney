@@ -10,6 +10,7 @@ import { createLocalTracks, Track } from "livekit-client";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { speakWithDeepgram, speakWithWebSpeech } from "../../lib/deepgram-tts";
+import { VLMMonitor } from "../components/vlm-monitor";
 
 // Mock wallet connection - replace with your actual wallet integration
 const useWallet = () => {
@@ -149,6 +150,7 @@ export default function StreamPage() {
           setIsStreaming={setIsStreaming}
           streamingStarted={streamingStarted}
         />
+        {roomName && <VLMMonitor roomName={roomName} />}
       </LiveKitRoom>
     </TokenContext.Provider>
   );

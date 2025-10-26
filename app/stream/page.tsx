@@ -110,10 +110,15 @@ export default function StreamPage() {
     return false;
   };
 
-  // Check for NFTs when wallet connects
+  // Check for NFTs when wallet connects and auto-start stream if found
   useEffect(() => {
     if (isConnected && walletAddress) {
-      checkForNFTs();
+      checkForNFTs().then(found => {
+        if (found) {
+          // Auto-start stream if NFTs are found
+          connectToRoom();
+        }
+      });
     } else {
       setHasMintedNFTs(false);
       setNftCount(0);
@@ -176,16 +181,8 @@ export default function StreamPage() {
             console.log("✅ Slots created successfully:", result);
             console.log("✅ Transaction digest:", result.digest);
 
-            // Wait for blockchain to propagate and check with retries
-            const found = await checkForNFTsWithRetry();
-
-            if (found) {
-              // Auto-start stream
-              await connectToRoom();
-            } else {
-              alert("NFTs were minted but not detected. Please refresh the page and try again.");
-              setIsMinting(false);
-            }
+            // Immediately connect to room - NFTs are confirmed by transaction success
+            await connectToRoom();
           },
           onError: (error) => {
             console.error("Failed to create slots:", error);
@@ -204,11 +201,6 @@ export default function StreamPage() {
   const connectToRoom = async () => {
     if (!isConnected || !walletAddress) {
       alert("Please connect your wallet first");
-      return;
-    }
-
-    if (!hasMinedNFTs) {
-      alert("You must mint time slot NFTs first!");
       return;
     }
 
@@ -365,7 +357,7 @@ export default function StreamPage() {
                 </>
               )}
             </div>
-          ) : (
+          ) : hasMinedNFTs ? (
             <div className="space-y-6">
               <div className="text-center">
                 <div className="bg-green-900/30 border border-green-600 rounded-lg p-4 mb-6">
@@ -385,17 +377,9 @@ export default function StreamPage() {
                 >
                   🎥 START STREAMING NOW
                 </button>
-
-                <button
-                  onClick={checkForNFTs}
-                  disabled={isCheckingNFTs}
-                  className="w-full mt-2 text-gray-400 hover:text-gray-200 text-sm py-2 transition duration-200"
-                >
-                  {isCheckingNFTs ? "Checking..." : "🔄 Refresh NFT Count"}
-                </button>
               </div>
             </div>
-          )}
+          ) : null}
         </div>
       </div>
     );

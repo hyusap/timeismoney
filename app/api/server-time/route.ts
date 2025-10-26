@@ -1,0 +1,8 @@
+import { NextResponse } from 'next/server';
+
+export async function GET() {
+  return NextResponse.json({
+    timestamp: Date.now(),
+    iso: new Date().toISOString(),
+  });
+}

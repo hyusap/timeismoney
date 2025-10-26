@@ -30,7 +30,7 @@ export default function AuctionPage() {
       const minBid = info.currentBid > 0n
         ? mistToDollars(info.currentBid) + 0.00001
         : mistToDollars(info.minBid);
-      setBidAmount(minBid.toFixed(6));
+      setBidAmount(minBid.toFixed(2));
     }
   };
 
@@ -217,7 +217,7 @@ export default function AuctionPage() {
                 <div className="text-gray-400 text-sm mb-2">Current Highest Bid</div>
                 <div className="text-4xl font-bold text-green-400 mb-2">
                   {slot.currentBid > 0n
-                    ? `$${mistToDollars(slot.currentBid).toFixed(6)}`
+                    ? `$${mistToDollars(slot.currentBid).toFixed(2)}`
                     : "No bids yet"}
                 </div>
                 {slot.currentBidder && (
@@ -227,7 +227,7 @@ export default function AuctionPage() {
                 )}
                 {slot.currentBid === 0n && (
                   <div className="text-gray-500 text-sm">
-                    Minimum bid: ${mistToDollars(slot.minBid).toFixed(6)}
+                    Minimum bid: ${mistToDollars(slot.minBid).toFixed(2)}
                   </div>
                 )}
               </div>
@@ -297,7 +297,7 @@ export default function AuctionPage() {
                     <div key={idx} className="bg-gray-800 rounded p-3">
                       <div className="flex justify-between items-start mb-1">
                         <div className="text-white font-bold">
-                          ${mistToDollars(bid.amount).toFixed(6)}
+                          ${mistToDollars(bid.amount).toFixed(2)}
                         </div>
                         <div className="text-gray-500 text-xs">
                           {formatTime(bid.timestamp)}

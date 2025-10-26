@@ -12,16 +12,16 @@ module time_auction::time_slot {
     const EAuctionNotEnded: u64 = 6;
 
     // ====== Constants ======
-    const SLOT_DURATION_MS: u64 = 900000; // 15 minutes in milliseconds
+    const SLOT_DURATION_MS: u64 = 60000; // 1 minute in milliseconds (for testing)
 
     // ====== Structs ======
 
-    /// Represents a 15-minute time slot that can be auctioned
+    /// Represents a 1-minute time slot that can be auctioned
     public struct TimeSlot has key, store {
         id: UID,
         /// Unix timestamp (ms) when this slot starts
         start_time: u64,
-        /// Duration in milliseconds (always 15 min)
+        /// Duration in milliseconds (always 1 min for testing)
         duration_ms: u64,
         /// Address of the person selling their time
         time_owner: address,

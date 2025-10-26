@@ -25,7 +25,7 @@ export default function Home() {
 
       if (response.ok) {
         const rooms = await response.json();
-        console.log("Fetched rooms:", rooms);
+        //console.log("Fetched rooms:", rooms);
         setActiveRooms(rooms);
       } else {
         console.error("Failed to fetch rooms, status:", response.status);

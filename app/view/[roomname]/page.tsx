@@ -1,27 +1,38 @@
 "use client";
 
-import { StreamPlayer } from "../components/stream-player";
-import { TokenContext } from "../components/token-context";
+import { StreamPlayer } from "../../components/stream-player";
+import { TokenContext } from "../../components/token-context";
 import { LiveKitRoom } from "@livekit/components-react";
-import { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useEffect, use } from "react";
 
-export default function ViewerPage() {
-  const searchParams = useSearchParams();
+interface ViewerPageProps {
+  params: Promise<{
+    roomname: string;
+  }>;
+}
+
+export default function ViewerPage({ params }: ViewerPageProps) {
   const [roomName, setRoomName] = useState("");
   const [authToken, setAuthToken] = useState("");
   const [roomToken, setRoomToken] = useState("");
   const [serverUrl, setServerUrl] = useState("");
 
-  // Read room name from URL parameter
+  // Unwrap the params Promise
+  const resolvedParams = use(params);
+
+  // Set room name from URL parameter
   useEffect(() => {
-    const roomParam = searchParams.get("room");
-    if (roomParam) {
-      setRoomName(roomParam);
+    if (resolvedParams.roomname) {
+      setRoomName(decodeURIComponent(resolvedParams.roomname));
     }
-  }, [searchParams]);
+  }, [resolvedParams.roomname]);
 
   const connectToRoom = async () => {
+    if (!roomName.trim()) {
+      alert("Please enter a room name");
+      return;
+    }
+
     try {
       const res = await fetch("/api/join_stream", {
         method: "POST",
@@ -41,35 +52,34 @@ export default function ViewerPage() {
     }
   };
 
+  // Auto-connect when room name is available
+  useEffect(() => {
+    if (roomName && !authToken) {
+      connectToRoom();
+    }
+  }, [roomName, authToken]);
+
+  if (!roomName) {
+    return (
+      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+        <div className="text-white text-xl">Loading room...</div>
+      </div>
+    );
+  }
+
   if (!authToken || !roomToken) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
           <h1 className="text-2xl font-bold text-white mb-6 text-center">
-            Join Stream
+            Joining Stream
           </h1>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Room Name
-              </label>
-              <input
-                type="text"
-                value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter room ID (e.g., room-abc123...)"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Get the room ID from the streamer
-              </p>
+          <div className="text-center">
+            <div className="text-gray-300 mb-4">
+              Connecting to room:{" "}
+              <span className="font-semibold text-white">{roomName}</span>
             </div>
-            <button
-              onClick={connectToRoom}
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-md transition duration-200"
-            >
-              Join Stream
-            </button>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto"></div>
           </div>
         </div>
       </div>

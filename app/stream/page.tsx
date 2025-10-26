@@ -7,12 +7,17 @@ import { useEffect, useState, useRef } from "react";
 
 export default function StreamPage() {
   const [participantName, setParticipantName] = useState("");
-  const [roomName, setRoomName] = useState("main-room");
+  const [roomName, setRoomName] = useState("");
   const [authToken, setAuthToken] = useState("");
   const [roomToken, setRoomToken] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [isStreaming, setIsStreaming] = useState(false);
   const streamingStarted = useRef(false);
+
+  // Generate a random UUID for room name
+  const generateRoomId = () => {
+    return "room-" + crypto.randomUUID();
+  };
 
   const connectToRoom = async () => {
     if (!participantName.trim()) {
@@ -20,12 +25,16 @@ export default function StreamPage() {
       return;
     }
 
+    // Generate room ID if not provided
+    const finalRoomName = roomName.trim() || generateRoomId();
+    setRoomName(finalRoomName);
+
     try {
       const res = await fetch("/api/create_stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          room_name: roomName,
+          room_name: finalRoomName,
           metadata: {
             creator_identity: participantName.trim(),
             enable_chat: true,
@@ -48,7 +57,7 @@ export default function StreamPage() {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
           <h1 className="text-2xl font-bold text-white mb-6 text-center">
-            Start Streaming
+            Streaming Setup
           </h1>
           <div className="space-y-4">
             <div>
@@ -65,15 +74,18 @@ export default function StreamPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Room Name
+                Room Name (Optional)
               </label>
               <input
                 type="text"
                 value={roomName}
                 onChange={(e) => setRoomName(e.target.value)}
                 className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Room name"
+                placeholder="Leave empty for random room ID"
               />
+              <p className="text-xs text-gray-400 mt-1">
+                If empty, a random room ID will be generated
+              </p>
             </div>
             <button
               onClick={connectToRoom}
@@ -232,7 +244,8 @@ function StreamingContent({
           {isStreaming ? "Your stream is now live!" : "Starting stream..."}
         </p>
         <p className="text-gray-400 text-sm mt-2">
-          Share this room with viewers: {roomName}
+          Share this room with viewers:{" "}
+          <span className="font-mono text-blue-400">{roomName}</span>
         </p>
         <p className="text-gray-500 text-xs mt-1">
           Orientation: {orientation}°

@@ -1,18 +1,58 @@
 "use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { StreamPreview } from "./components/stream-preview";
+
 import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
+
+interface ActiveRoom {
+  name: string;
+  numParticipants: number;
+  creationTime: number;
+}
 
 export default function Home() {
   const account = useCurrentAccount();
+  const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchActiveRooms = async () => {
+    try {
+      console.log("Fetching active rooms...");
+      const response = await fetch("/api/active_rooms");
+      console.log("Response status:", response.status);
+
+      if (response.ok) {
+        const rooms = await response.json();
+        console.log("Fetched rooms:", rooms);
+        setActiveRooms(rooms);
+      } else {
+        console.error("Failed to fetch rooms, status:", response.status);
+      }
+    } catch (error) {
+      console.error("Failed to fetch active rooms:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchActiveRooms();
+    // Refresh every 5 seconds for live updates
+    const interval = setInterval(fetchActiveRooms, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="max-w-4xl mx-auto p-8">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-white mb-4">
-            Multi-Stream Video Platform
-          </h1>
-          <p className="text-xl text-gray-300 mb-8">
-            Stream your video or watch multiple streams simultaneously
+    <div className="min-h-screen bg-gray-900">
+      <div className="max-w-7xl mx-auto p-6">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold text-white mb-4">Live Streams</h1>
+          <p className="text-xl text-gray-300">
+            {isLoading
+              ? "Loading streams..."
+              : `${activeRooms.length} active streams`}
           </p>
           {account && (
             <div className="text-white">
@@ -22,69 +62,61 @@ export default function Home() {
           <ConnectButton />
         </div>
 
-        <div className="grid md:grid-cols-2 gap-8">
-          <Link
-            href="/stream"
-            className="group bg-gray-800 hover:bg-gray-700 rounded-lg p-8 transition-all duration-200 hover:scale-105"
-          >
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-blue-500 transition-colors">
-                <span className="text-2xl">📹</span>
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-3">
-                Start Streaming
-              </h2>
-              <p className="text-gray-300 mb-4">
-                Share your video stream with others. Perfect for content
-                creators, presenters, or anyone who wants to broadcast.
-              </p>
-              <div className="bg-blue-600 group-hover:bg-blue-500 text-white px-6 py-3 rounded-md font-medium transition-colors">
-                Go Live →
-              </div>
-            </div>
-          </Link>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="text-white text-xl">Loading live streams...</div>
+          </div>
+        ) : activeRooms.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="text-6xl mb-4">📺</div>
+            <h2 className="text-2xl font-bold text-white mb-4">
+              No Live Streams
+            </h2>
+            <p className="text-gray-300 mb-8">
+              Be the first to start streaming!
+            </p>
+            <Link
+              href="/stream"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
+            >
+              Start Streaming
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {activeRooms.map((room) => (
+              <Link
+                key={room.name}
+                href={`/view/${encodeURIComponent(room.name)}`}
+                className="group bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-all duration-200 hover:scale-105"
+              >
+                <div className="aspect-video bg-gray-700 relative">
+                  {/* Actual video preview */}
+                  <StreamPreview
+                    roomName={room.name}
+                    className="w-full h-full"
+                  />
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
 
-          <Link
-            href="/viewer"
-            className="group bg-gray-800 hover:bg-gray-700 rounded-lg p-8 transition-all duration-200 hover:scale-105"
-          >
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center mx-auto mb-4 group-hover:bg-green-500 transition-colors">
-                <span className="text-2xl">📺</span>
-              </div>
-              <h2 className="text-2xl font-bold text-white mb-3">
-                Watch Streams
-              </h2>
-              <p className="text-gray-300 mb-4">
-                View all active streams in one place. See multiple video feeds
-                simultaneously in a beautiful grid layout.
-              </p>
-              <div className="bg-green-600 group-hover:bg-green-500 text-white px-6 py-3 rounded-md font-medium transition-colors">
-                Watch Now →
-              </div>
-            </div>
-          </Link>
-        </div>
-
+        {/* Quick actions */}
         <div className="mt-12 text-center">
-          <div className="bg-gray-800 rounded-lg p-6 max-w-2xl mx-auto">
-            <h3 className="text-lg font-semibold text-white mb-3">
-              How it works
-            </h3>
-            <div className="space-y-2 text-gray-300 text-sm">
-              <p>
-                1. <strong>Streamers:</strong> Go to "Start Streaming" to
-                broadcast your video
-              </p>
-              <p>
-                2. <strong>Viewers:</strong> Go to "Watch Streams" to see all
-                active streams
-              </p>
-              <p>
-                3. <strong>Real-time:</strong> All streams are live and
-                synchronized
-              </p>
-            </div>
+          <div className="flex justify-center space-x-4">
+            <Link
+              href="/stream"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
+            >
+              Start Your Stream
+            </Link>
+            <Link
+              href="/viewer"
+              className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-md font-medium transition duration-200"
+            >
+              Browse All Streams
+            </Link>
           </div>
         </div>
       </div>

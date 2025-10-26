@@ -416,6 +416,7 @@ export default function StreamPage() {
         {roomName && (
           <VLMMonitor
             roomName={roomName}
+            walletAddress={walletAddress || undefined}
             mainTaskPrompt={currentInstructions || "Monitor the stream and describe what you see"}
             chunkTimeMinutes={1}
           />

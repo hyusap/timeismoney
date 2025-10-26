@@ -4,11 +4,12 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
+import { storeChunkSummary } from "@/lib/chromadb-client";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sampleImages, batchSummaries, mainTaskPrompt, chunkDuration } = body;
+    const { sampleImages, batchSummaries, mainTaskPrompt, chunkDuration, walletAddress, roomName } = body;
 
     if (!sampleImages || sampleImages.length === 0) {
       return NextResponse.json(
@@ -123,6 +124,28 @@ COMPLETED: [YES or NO]`;
     const taskCompleted = completedMatch
       ? completedMatch[1].toUpperCase() === "YES"
       : false;
+
+    // Store in ChromaDB if wallet address is provided
+    if (walletAddress) {
+      try {
+        await storeChunkSummary({
+          walletAddress,
+          roomName: roomName || "unknown",
+          timestamp: Date.now(),
+          chunkDuration,
+          summary,
+          taskCompleted,
+          mainTaskPrompt,
+          frameCount: sampleImages.length,
+        });
+        console.log(`✅ [ChromaDB] Stored chunk summary for wallet: ${walletAddress}`);
+      } catch (chromaError) {
+        console.error("❌ [ChromaDB] Failed to store, but continuing:", chromaError);
+        // Don't fail the whole request if ChromaDB fails
+      }
+    } else {
+      console.warn("⚠️  [ChromaDB] No wallet address provided, skipping storage");
+    }
 
     return NextResponse.json({
       success: true,

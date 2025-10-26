@@ -4,6 +4,7 @@ import { StreamPlayer } from "../../components/stream-player";
 import { TokenContext } from "../../components/token-context";
 import { NFTAuctionSidebar } from "../../components/nft-auction-sidebar";
 import { DebugOverlay } from "../../components/debug-overlay";
+import { UserHistoryModal } from "../../components/user-history-modal";
 import { LiveKitRoom } from "@livekit/components-react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useState, useEffect, use } from "react";
@@ -20,6 +21,7 @@ export default function ViewerPage({ params }: ViewerPageProps) {
   const [authToken, setAuthToken] = useState("");
   const [roomToken, setRoomToken] = useState("");
   const [serverUrl, setServerUrl] = useState("");
+  const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
   const viewerAddress = account?.address || null;
 
@@ -99,6 +101,29 @@ export default function ViewerPage({ params }: ViewerPageProps) {
           {/* Main video area */}
           <div className="flex-1 relative">
             <StreamPlayer viewerAddress={viewerAddress} />
+
+            {/* History Search Button - Floating over video */}
+            <button
+              onClick={() => setIsHistoryModalOpen(true)}
+              className="absolute top-4 right-4 flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition shadow-lg z-10"
+              title="Search User History"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                strokeWidth={1.5}
+                stroke="currentColor"
+                className="w-5 h-5"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                />
+              </svg>
+              <span className="font-mono font-bold text-sm">HISTORY</span>
+            </button>
           </div>
 
           {/* NFT Auction Sidebar */}
@@ -107,6 +132,13 @@ export default function ViewerPage({ params }: ViewerPageProps) {
 
         {/* Debug Overlay */}
         <DebugOverlay roomName={roomName} />
+
+        {/* User History Modal - searches the streamer's history */}
+        <UserHistoryModal
+          isOpen={isHistoryModalOpen}
+          onClose={() => setIsHistoryModalOpen(false)}
+          walletAddress={roomName}
+        />
       </LiveKitRoom>
     </TokenContext.Provider>
   );

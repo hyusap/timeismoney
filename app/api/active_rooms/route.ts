@@ -15,7 +15,7 @@ export async function GET() {
     // List all active rooms
     const rooms = await roomService.listRooms();
 
-    console.log("rooms", rooms);
+    //console.log("rooms", rooms);
 
     // Transform room data
     const activeRooms = rooms

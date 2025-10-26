@@ -7,7 +7,7 @@ import { PACKAGE_ID, CLOCK_OBJECT_ID } from "@/lib/sui/time-auction";
 
 const SHIFT_HOURS = 4; // Default shift length
 const SLOT_DURATION_MS = 60 * 1000; // 1 minute for testing
-const MIN_BID_DOLLARS = 0.01; // $0.01 in UI = 100 MIST on-chain
+const MIN_BID_DOLLARS = 1.00; // $1 in UI = 10,000 MIST on-chain
 const AUCTION_DURATION_HOURS = 24; // Auction runs for 24 hours before slot starts
 
 export default function SellTimePage() {

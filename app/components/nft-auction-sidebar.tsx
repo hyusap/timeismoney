@@ -268,7 +268,8 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
           </div>
           <input
             type="number"
-            step="0.01"
+            step="1.00"
+            min="1.00"
             value={bidAmount}
             onChange={(e) => setBidAmount(e.target.value)}
             placeholder="Amount in $ (e.g. 1.00)"

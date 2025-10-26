@@ -26,9 +26,9 @@ export default function AuctionPage() {
     setIsLoading(false);
 
     if (info) {
-      // Set default bid to min or current + tiny increment
+      // Set default bid to min or current + $1 increment
       const minBid = info.currentBid > 0n
-        ? mistToDollars(info.currentBid) + 0.00001
+        ? mistToDollars(info.currentBid) + 1.00
         : mistToDollars(info.minBid);
       setBidAmount(minBid.toFixed(2));
     }
@@ -250,7 +250,8 @@ export default function AuctionPage() {
                       type="number"
                       value={bidAmount}
                       onChange={(e) => setBidAmount(e.target.value)}
-                      step="0.00001"
+                      step="1.00"
+                      min="1.00"
                       className="w-full bg-gray-800 text-white text-xl border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-red-500"
                       disabled={!account || isBidding}
                     />

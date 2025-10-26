@@ -58,8 +58,8 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const account = useCurrentAccount();
 
-  // Netcam feed URLs
-  const cameraUrls = [
+  // Netcam feed URLs (proxied through our API to avoid CORS issues)
+  const rawCameraUrls = [
     "http://190.210.250.149:91/mjpg/video.mjpg",
     "http://158.58.130.148/mjpg/video.mjpg",
     "http://181.133.80.199:89/mjpg/video.mjpg",
@@ -70,6 +70,11 @@ export default function Home() {
     "http://220.233.144.165:8888/mjpg/video.mjpg",
     "http://holmen.tplinkdns.com/mjpg/video.mjpg",
   ];
+
+  // Proxy URLs through our API to avoid CORS issues in production
+  const cameraUrls = rawCameraUrls.map(
+    (url) => `/api/camera-proxy?url=${encodeURIComponent(url)}`
+  );
 
   const fetchActiveRooms = async () => {
     try {

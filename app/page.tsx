@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { StreamPreview } from "./components/stream-preview";
 
+import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
+
 interface ActiveRoom {
   name: string;
   numParticipants: number;
@@ -11,6 +13,7 @@ interface ActiveRoom {
 }
 
 export default function Home() {
+  const account = useCurrentAccount();
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -51,6 +54,12 @@ export default function Home() {
               ? "Loading streams..."
               : `${activeRooms.length} active streams`}
           </p>
+          {account && (
+            <div className="text-white">
+              <p>Connected to {account.address}</p>
+            </div>
+          )}
+          <ConnectButton />
         </div>
 
         {isLoading ? (

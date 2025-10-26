@@ -16,11 +16,11 @@ echo "✓ Bun is installed"
 echo "📦 Installing dependencies..."
 bun install
 
-# Copy .env.local from repository root if it exists
+# Symlink .env.local from repository root if it exists
 if [ -f "$CONDUCTOR_ROOT_PATH/.env.local" ]; then
-    echo "📋 Copying .env.local from repository root..."
-    cp "$CONDUCTOR_ROOT_PATH/.env.local" .env.local
-    echo "✓ Environment variables copied"
+    echo "🔗 Symlinking .env.local from repository root..."
+    ln -sf "$CONDUCTOR_ROOT_PATH/.env.local" .env.local
+    echo "✓ Environment variables symlinked"
 else
     echo "⚠️  Warning: No .env.local file found in repository root"
     echo "Please create $CONDUCTOR_ROOT_PATH/.env.local with your LiveKit credentials"

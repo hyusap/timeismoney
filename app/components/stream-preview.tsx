@@ -35,7 +35,7 @@ function PreviewContent({ roomName, className }: StreamPreviewProps) {
   if (roomState !== "connected") {
     return (
       <div
-        className={`bg-gray-700 flex items-center justify-center ${className}`}
+        className={`absolute inset-0 bg-gray-700 flex items-center justify-center ${className}`}
       >
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
@@ -48,7 +48,7 @@ function PreviewContent({ roomName, className }: StreamPreviewProps) {
   if (!hasVideo) {
     return (
       <div
-        className={`bg-gray-700 flex items-center justify-center ${className}`}
+        className={`absolute inset-0 bg-gray-700 flex items-center justify-center ${className}`}
       >
         <div className="text-center">
           <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
@@ -61,19 +61,41 @@ function PreviewContent({ roomName, className }: StreamPreviewProps) {
   }
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`absolute inset-0 ${className}`}>
       {/* Show first video track as preview */}
       {videoTracks.slice(0, 1).map((track) => (
         <div
           key={track.participant.identity}
-          className="w-full h-full relative"
+          className="absolute inset-0"
         >
-          <VideoTrack trackRef={track} className="w-full h-full object-cover" />
-          {/* Live indicator overlay */}
-          <div className="absolute top-2 left-2 bg-red-600 text-white px-2 py-1 rounded text-xs font-medium flex items-center">
-            <div className="w-2 h-2 bg-white rounded-full animate-pulse mr-1"></div>
-            LIVE
+          <VideoTrack trackRef={track} className="absolute inset-0 w-full h-full object-cover" />
+
+          {/* CCTV Overlays */}
+          {/* Top left: timestamp */}
+          <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 font-mono text-xs">
+            {new Date().toLocaleString("en-US", {
+              month: "2-digit",
+              day: "2-digit",
+              year: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: false
+            })}
           </div>
+
+          {/* Top right: live indicator */}
+          <div className="absolute top-2 right-2 flex items-center space-x-1 bg-black/60 px-2 py-1">
+            <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+            <span className="text-red-500 font-mono text-xs font-bold">REC</span>
+          </div>
+
+          {/* Bottom left: camera label */}
+          <div className="absolute bottom-2 left-2 bg-black/60 text-white px-2 py-1 font-mono text-xs">
+            CAM: {track.participant.identity.slice(0, 8)}
+          </div>
+
+          {/* Scan line effect */}
+          <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-white/5 to-transparent animate-pulse"></div>
         </div>
       ))}
     </div>
@@ -125,7 +147,7 @@ export function StreamPreview({
   if (isLoading) {
     return (
       <div
-        className={`bg-gray-700 flex items-center justify-center ${className}`}
+        className={`absolute inset-0 bg-gray-700 flex items-center justify-center ${className}`}
       >
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
@@ -138,7 +160,7 @@ export function StreamPreview({
   if (!token || !serverUrl) {
     return (
       <div
-        className={`bg-gray-700 flex items-center justify-center ${className}`}
+        className={`absolute inset-0 bg-gray-700 flex items-center justify-center ${className}`}
       >
         <div className="text-center">
           <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">

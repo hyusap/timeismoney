@@ -6,8 +6,8 @@ import { Transaction } from "@mysten/sui/transactions";
 import { PACKAGE_ID, CLOCK_OBJECT_ID } from "@/lib/sui/time-auction";
 
 const SHIFT_HOURS = 4; // Default shift length
-const SLOT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
-const MIN_BID_DOLLARS = 0.0001; // Minimum bid per slot in dollars (insanely small)
+const SLOT_DURATION_MS = 60 * 1000; // 1 minute for testing
+const MIN_BID_DOLLARS = 0.01; // $0.01 in UI = 100 MIST on-chain
 const AUCTION_DURATION_HOURS = 24; // Auction runs for 24 hours before slot starts
 
 export default function SellTimePage() {
@@ -33,22 +33,19 @@ export default function SellTimePage() {
     setIsCreatingSlots(true);
 
     try {
-      // Calculate how many 15-min slots in the shift
-      const numSlots = (shiftHours * 60) / 15;
+      // Calculate how many 1-min slots in the shift
+      const numSlots = shiftHours * 60;
       const now = Date.now();
 
-      // Quantize to nearest 15-minute boundary (round up to next slot)
-      const quantizedNow = Math.ceil(now / SLOT_DURATION_MS) * SLOT_DURATION_MS;
-
       const auctionDurationMs = AUCTION_DURATION_HOURS * 60 * 60 * 1000;
-      const minBidMist = BigInt(Math.floor(minBidPerSlot * 1_000_000_000));
+      const minBidMist = BigInt(Math.floor(minBidPerSlot * 10_000)); // Convert UI dollars to MIST
 
       // Create a transaction to batch-create all slots
       const tx = new Transaction();
 
       for (let i = 0; i < numSlots; i++) {
-        // Slots start immediately at quantized time, auction runs in parallel
-        const slotStartTime = quantizedNow + (i * SLOT_DURATION_MS);
+        // Slots start immediately, no offset
+        const slotStartTime = now + (i * SLOT_DURATION_MS);
 
         tx.moveCall({
           target: `${PACKAGE_ID}::time_slot::create_time_slot`,
@@ -131,7 +128,7 @@ export default function SellTimePage() {
                 className="w-full bg-gray-800 text-white border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-red-500"
               />
               <p className="text-gray-500 text-sm mt-1">
-                Will create {(shiftHours * 60) / 15} time slots (15 min each)
+                Will create {shiftHours * 60} time slots (1 min each)
               </p>
             </div>
           </div>

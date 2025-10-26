@@ -110,7 +110,7 @@ export function Navbar() {
           )}
 
           {/* Wallet Connect Button */}
-          <ConnectButton />
+          {!account ? <ConnectButton /> : null}
 
           {activeRooms.length > 0 && (
             <div className="relative group">

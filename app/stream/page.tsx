@@ -8,6 +8,7 @@ import { VLMMonitor } from "../components/vlm-monitor";
 import { InstructionsOverlay } from "../components/instructions-overlay";
 import { DebugOverlay } from "../components/debug-overlay";
 import { NFTAuctionSidebar } from "../components/nft-auction-sidebar";
+import { BreathingOrb } from "../components/breathing-orb";
 import {
   ConnectButton,
   useCurrentAccount,
@@ -47,6 +48,9 @@ export default function StreamPage() {
   const [isMinting, setIsMinting] = useState(false);
   const [nftCount, setNftCount] = useState(0);
   const [streamDurationHours, setStreamDurationHours] = useState(4);
+  const [currentStep, setCurrentStep] = useState<"intro" | "minting" | "ready">(
+    "intro"
+  );
 
   // Time slot monitoring
   const [currentInstructions, setCurrentInstructions] = useState<string | null>(
@@ -302,6 +306,34 @@ export default function StreamPage() {
   }, [isStreaming, walletAddress]);
 
   if (!authToken || !roomToken) {
+    // Intro step - Show "Sell Your Time" with breathing orb
+    if (currentStep === "intro") {
+      return (
+        <div className="bg-black h-screen flex items-center justify-center">
+          <div className="flex items-center gap-16 max-w-6xl w-full px-8">
+            {/* Left - Breathing Orb */}
+            <div className="flex-1 flex justify-center">
+              <BreathingOrb size="xl" />
+            </div>
+
+            {/* Right - Title */}
+            <div className="flex-1">
+              <h1 className="text-8xl font-cormorant italic font-medium text-white mb-6 tracking-tight">
+                Sell Your Time
+              </h1>
+              <button
+                onClick={() => setCurrentStep("minting")}
+                className="bg-white text-black px-8 py-4 rounded-full font-cormorant italic text-xl tracking-tight hover:bg-gray-100 transition"
+              >
+                Continue
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // Minting/Ready steps - Show current UI
     return (
       <div className=" bg-black flex items-center justify-center p-6">
         <div className=" max-w-2xl w-full">

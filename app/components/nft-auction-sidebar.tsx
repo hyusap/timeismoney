@@ -316,45 +316,45 @@ export function NFTAuctionSidebar({
                   </span>
                 </div>
 
-                {/* WINNER ADDRESS - PROMINENT */}
-                {slot.currentBidder && (
-                  <div className="bg-gradient-to-r from-yellow-900/50 to-yellow-800/50 border-2 border-yellow-500 rounded-lg p-4 mb-3">
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="text-yellow-400 font-bold text-sm">
-                        🏆 HIGHEST BIDDER
-                      </div>
-                      {winner && (
-                        <span className="text-xs font-bold px-2 py-1 rounded bg-green-600 text-white">
-                          YOU
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-white font-mono text-base font-bold bg-black/40 px-3 py-2 rounded border border-yellow-600/50">
-                      {slot.currentBidder.slice(0, 12)}...
-                      {slot.currentBidder.slice(-8)}
-                    </div>
-                  </div>
-                )}
-
-                {/* Current Bid - Secondary */}
-                <div className="">
-                  <div className="text-gray-400 text-xs font-mono uppercase">
+                {/* Current Bid */}
+                <div className="mb-3">
+                  <div className="text-gray-500 text-xs uppercase tracking-wider mb-1">
                     Current Bid
                   </div>
-                  <div className="text-green-400 font-mono font-bold text-2xl">
+                  <div className="text-green-400 font-cormorant italic text-3xl font-medium tracking-tight">
                     {slot.currentBid > BigInt(0)
                       ? `$${mistToDollars(slot.currentBid).toFixed(2)}`
                       : `$${mistToDollars(slot.minBid).toFixed(2)}`}
                   </div>
                 </div>
 
+                {/* Winner */}
+                {slot.currentBidder && (
+                  <div className="mb-3 pb-3 border-b border-white/10">
+                    <div className="text-gray-500 text-xs uppercase tracking-wider mb-1">
+                      Leading
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="text-white font-mono text-sm tracking-tight">
+                        {slot.currentBidder.slice(0, 6)}...
+                        {slot.currentBidder.slice(-4)}
+                      </div>
+                      {winner && (
+                        <span className="text-xs px-2 py-0.5 rounded bg-green-600/20 text-green-400 border border-green-600/30">
+                          YOU
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )}
+
                 {/* Action Buttons - Only show for non-streamers */}
                 {status === "BIDDING OPEN" && account && !isStreamer && (
                   <button
                     onClick={() => setSelectedSlot(slot)}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 rounded transition duration-200 mb-2"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-cormorant italic tracking-tight font-medium py-2 rounded transition duration-200 mb-2"
                   >
-                    PLACE BID
+                    Place Bid
                   </button>
                 )}
 
@@ -372,11 +372,9 @@ export function NFTAuctionSidebar({
                     <button
                       onClick={() => handleFinalizeAuction(slot)}
                       disabled={isFinalizingAuction}
-                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-800 text-white text-xs font-semibold py-2 rounded transition duration-200 border border-purple-500 mb-2"
+                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-800 text-white text-xs font-cormorant italic tracking-tight font-medium py-2 rounded transition duration-200 mb-2"
                     >
-                      {isFinalizingAuction
-                        ? "FINALIZING..."
-                        : "⚡ FINALIZE AUCTION"}
+                      {isFinalizingAuction ? "Finalizing..." : "Finalize"}
                     </button>
                   ) : null;
                 })()}

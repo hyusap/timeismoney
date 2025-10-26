@@ -58,13 +58,14 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const account = useCurrentAccount();
 
-  // Netcam feed URLs
+  // Static image URLs
   const cameraUrls = [
-    "http://190.210.250.149:91/mjpg/video.mjpg",
-    "http://158.58.130.148/mjpg/video.mjpg",
-    "http://181.133.80.199:89/mjpg/video.mjpg",
-    "http://109.228.134.144:81/mjpg/video.mjpg",
-    "http://88.209.215.194:8801/mjpg/video.mjpg",
+    "/1.png",
+    "/2.png",
+    "/3.png",
+    "/4.png",
+    "/5.png",
+    "/6.png",
   ];
 
   const fetchActiveRooms = async () => {

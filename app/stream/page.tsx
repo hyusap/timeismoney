@@ -10,36 +10,35 @@ import { createLocalTracks, Track } from "livekit-client";
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { speakWithDeepgram, speakWithWebSpeech } from "../../lib/deepgram-tts";
+import { VLMMonitor } from "../components/vlm-monitor";
+import { InstructionsOverlay } from "../components/instructions-overlay";
+import { DebugOverlay } from "../components/debug-overlay";
+import {
+  ConnectButton,
+  useCurrentAccount,
+  useSuiClient,
+  useSignAndExecuteTransaction,
+} from "@mysten/dapp-kit";
+import {
+  queryTimeSlotsByOwner,
+  PACKAGE_ID,
+  CLOCK_OBJECT_ID,
+} from "@/lib/sui/time-auction";
+import { Transaction } from "@mysten/sui/transactions";
 
-// Mock wallet connection - replace with your actual wallet integration
-const useWallet = () => {
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
-  const [isConnected, setIsConnected] = useState(false);
-
-  const connectWallet = async () => {
-    // Mock wallet connection - replace with actual wallet logic
-    // For now, we'll simulate a wallet connection
-    const mockAddress = "0x" + Math.random().toString(16).substr(2, 40);
-    setWalletAddress(mockAddress);
-    setIsConnected(true);
-    console.log("Mock wallet connected:", mockAddress);
-  };
-
-  const disconnectWallet = () => {
-    setWalletAddress(null);
-    setIsConnected(false);
-  };
-
-  return {
-    walletAddress,
-    isConnected,
-    connectWallet,
-    disconnectWallet,
-  };
-};
+interface TimeSlotMonitorResponse {
+  hasActiveSlot: boolean;
+  instructions: string | null;
+  winner: string | null;
+  slotStartTime: number | null;
+  slotEndTime: number | null;
+  currentTime: number;
+}
 
 export default function StreamPage() {
-  const [participantName, setParticipantName] = useState("");
+  const account = useCurrentAccount();
+  const client = useSuiClient();
+  const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
   const [roomName, setRoomName] = useState("");
   const [authToken, setAuthToken] = useState("");
   const [roomToken, setRoomToken] = useState("");
@@ -47,27 +46,163 @@ export default function StreamPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const streamingStarted = useRef(false);
 
-  // Wallet connection
-  const { walletAddress, isConnected, connectWallet, disconnectWallet } =
-    useWallet();
+  // Pre-stream NFT minting flow
+  const [hasMinedNFTs, setHasMintedNFTs] = useState(false);
+  const [isCheckingNFTs, setIsCheckingNFTs] = useState(false);
+  const [isMinting, setIsMinting] = useState(false);
+  const [nftCount, setNftCount] = useState(0);
+  const [streamDurationHours, setStreamDurationHours] = useState(4);
 
-  // Generate room name - use wallet address if connected, otherwise random UUID
-  const generateRoomId = () => {
-    if (isConnected && walletAddress) {
-      return walletAddress;
+  // Time slot monitoring
+  const [currentInstructions, setCurrentInstructions] = useState<string | null>(
+    null
+  );
+  const [currentWinner, setCurrentWinner] = useState<string | null>(null);
+  const [slotEndTime, setSlotEndTime] = useState<number | null>(null);
+  const [currentTime, setCurrentTime] = useState(Date.now());
+
+  const walletAddress = account?.address || null;
+  const isConnected = !!account;
+
+  const checkForNFTs = async () => {
+    if (!isConnected || !walletAddress) {
+      return;
     }
-    return "room-" + crypto.randomUUID();
+
+    setIsCheckingNFTs(true);
+
+    try {
+      const slots = await queryTimeSlotsByOwner(client, walletAddress);
+
+      // Filter for upcoming/future slots (not completed)
+      const now = Date.now();
+      const upcomingSlots = slots.filter((slot) => {
+        const endTime = Number(slot.startTime) + Number(slot.durationMs);
+        return endTime > now; // Slot hasn't ended yet
+      });
+
+      setNftCount(upcomingSlots.length);
+
+      if (upcomingSlots.length > 0) {
+        setHasMintedNFTs(true);
+      } else {
+        setHasMintedNFTs(false);
+      }
+    } catch (error) {
+      console.error("Error checking NFTs:", error);
+      setHasMintedNFTs(false);
+      setNftCount(0);
+    } finally {
+      setIsCheckingNFTs(false);
+    }
+  };
+
+  // Check for NFTs when wallet connects
+  useEffect(() => {
+    if (isConnected && walletAddress) {
+      checkForNFTs();
+    } else {
+      setHasMintedNFTs(false);
+      setNftCount(0);
+    }
+  }, [isConnected, walletAddress]);
+
+  const mintNFTsAndStartStream = async () => {
+    if (!account || !walletAddress) {
+      alert("Please connect your wallet");
+      return;
+    }
+
+    setIsMinting(true);
+
+    try {
+      const SLOT_DURATION_MS = 60 * 1000; // 1 minute for testing
+      const MIN_BID_DOLLARS = 0.01; // $0.01 in UI = 100 MIST on-chain
+      const AUCTION_DURATION_HOURS = 24;
+
+      const numSlots = (streamDurationHours * 60) / 1; // 1-minute slots
+      const now = Date.now();
+
+      console.log("🕐 MINTING DEBUG:");
+      console.log("Current time (Date.now()):", now);
+      console.log("Current time (formatted):", new Date(now).toISOString());
+      console.log("First slot will start at:", new Date(now).toISOString());
+
+      const auctionDurationMs = AUCTION_DURATION_HOURS * 60 * 60 * 1000;
+      const minBidMist = BigInt(Math.floor(MIN_BID_DOLLARS * 10_000)); // Convert UI dollars to MIST
+
+      const tx = new Transaction();
+
+      for (let i = 0; i < numSlots; i++) {
+        // Start immediately, no offset
+        const slotStartTime = now + i * SLOT_DURATION_MS;
+
+        if (i === 0) {
+          console.log("First slot start time:", slotStartTime);
+          console.log(
+            "First slot formatted:",
+            new Date(slotStartTime).toISOString()
+          );
+        }
+
+        tx.moveCall({
+          target: `${PACKAGE_ID}::time_slot::create_time_slot`,
+          arguments: [
+            tx.pure.u64(slotStartTime),
+            tx.pure.u64(minBidMist),
+            tx.pure.u64(auctionDurationMs),
+            tx.object(CLOCK_OBJECT_ID),
+          ],
+        });
+      }
+
+      console.log("📝 Transaction object:", tx);
+      console.log("📝 About to submit transaction...");
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: async (result) => {
+            console.log("✅ Slots created successfully:", result);
+            console.log("✅ Transaction digest:", result.digest);
+
+            // Wait a moment for blockchain to update
+            await new Promise((resolve) => setTimeout(resolve, 2000));
+
+            // Check for NFTs
+            await checkForNFTs();
+
+            // Auto-start stream
+            await connectToRoom();
+          },
+          onError: (error) => {
+            console.error("Failed to create slots:", error);
+            alert(`Failed to mint NFTs: ${error.message}`);
+            setIsMinting(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error minting NFTs:", error);
+      alert("Failed to mint NFTs");
+      setIsMinting(false);
+    }
   };
 
   const connectToRoom = async () => {
-    if (!isConnected) {
+    if (!isConnected || !walletAddress) {
       alert("Please connect your wallet first");
       return;
     }
 
+    if (!hasMinedNFTs) {
+      alert("You must mint time slot NFTs first!");
+      return;
+    }
+
     // Use wallet address as room name and participant name
-    const finalRoomName = walletAddress!;
-    const participantName = walletAddress!.slice(0, 8) + "..."; // Short version for display
+    const finalRoomName = walletAddress;
+    const participantName = walletAddress.slice(0, 8) + "...";
     setRoomName(finalRoomName);
 
     try {
@@ -93,46 +228,178 @@ export default function StreamPage() {
     }
   };
 
+  // Poll time-slot monitor API when streaming
+  useEffect(() => {
+    if (!isStreaming || !walletAddress) return;
+
+    const fetchTimeSlot = async () => {
+      try {
+        const res = await fetch(
+          `/api/time-slot-monitor?streamerAddress=${walletAddress}`
+        );
+        const data: TimeSlotMonitorResponse = await res.json();
+
+        if (data.hasActiveSlot) {
+          setCurrentInstructions(data.instructions);
+          setCurrentWinner(data.winner);
+          setSlotEndTime(data.slotEndTime);
+          setCurrentTime(data.currentTime);
+        } else {
+          setCurrentInstructions(null);
+          setCurrentWinner(null);
+          setSlotEndTime(null);
+        }
+      } catch (error) {
+        console.error("Failed to fetch time slot:", error);
+      }
+    };
+
+    // Fetch immediately
+    fetchTimeSlot();
+
+    // Poll every 30 seconds
+    const interval = setInterval(fetchTimeSlot, 30000);
+
+    return () => clearInterval(interval);
+  }, [isStreaming, walletAddress]);
+
   if (!authToken || !roomToken) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
-          <h1 className="text-2xl font-bold text-white mb-8 text-center">
-            Start Streaming
+      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+        <div className="bg-gray-900 border-2 border-red-600 rounded-lg p-8 max-w-2xl w-full">
+          <h1 className="text-4xl font-bold text-red-500 mb-2 text-center">
+            START STREAMING
           </h1>
+          <p className="text-gray-400 text-center mb-8 italic">
+            Sell your time, live on camera
+          </p>
 
           {!isConnected ? (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="text-center text-gray-300 mb-6">
-                Connect your wallet to start streaming
+                Connect your Sui wallet to begin
               </div>
-              <button
-                onClick={connectWallet}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-md transition duration-200"
-              >
-                Connect Wallet
-              </button>
+              <div className="flex justify-center">
+                <ConnectButton />
+              </div>
             </div>
-          ) : (
-            <div className="space-y-4">
+          ) : !hasMinedNFTs ? (
+            <div className="space-y-6">
               <div className="text-center text-gray-300 mb-2">
                 Wallet Connected
               </div>
-              <div className="bg-black text-white font-mono text-sm p-3 rounded border border-gray-600 text-center">
+              <div className="bg-black text-white font-mono text-xs p-3 rounded border border-gray-600 text-center break-all">
                 {walletAddress}
               </div>
-              <button
-                onClick={connectToRoom}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-200"
-              >
-                Start Stream
-              </button>
-              <button
-                onClick={disconnectWallet}
-                className="w-full text-gray-400 hover:text-gray-300 text-sm py-2 transition duration-200"
-              >
-                Disconnect Wallet
-              </button>
+
+              {isCheckingNFTs ? (
+                <div className="bg-gray-800 border border-gray-700 rounded-lg p-6 text-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500 mx-auto mb-3"></div>
+                  <p className="text-gray-300">Checking for minted NFTs...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="bg-red-900/30 border border-red-600 rounded-lg p-4 text-center">
+                    <h3 className="text-red-400 font-bold mb-2">
+                      ❌ NO TIME SLOTS FOUND
+                    </h3>
+                    <p className="text-gray-300 text-sm">
+                      You have {nftCount} upcoming time slots. You must mint
+                      NFTs before streaming.
+                    </p>
+                  </div>
+
+                  <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
+                    <h3 className="text-yellow-400 font-bold mb-2">
+                      ⚠️ STEP 1: MINT TIME SLOTS
+                    </h3>
+                    <p className="text-gray-300 text-sm mb-4">
+                      Each slot is 15 minutes. Viewers will bid on your time,
+                      and the highest bidder controls what you do.
+                    </p>
+
+                    <div className="mb-4">
+                      <label className="block text-gray-300 mb-2 font-semibold">
+                        Stream Duration (hours)
+                      </label>
+                      <input
+                        type="number"
+                        value={streamDurationHours}
+                        onChange={(e) =>
+                          setStreamDurationHours(Number(e.target.value))
+                        }
+                        min="1"
+                        max="12"
+                        className="w-full bg-gray-800 text-white border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-red-500"
+                      />
+                      <p className="text-gray-500 text-sm mt-1">
+                        Will create {streamDurationHours * 60} time slots (1 min
+                        each)
+                      </p>
+                    </div>
+
+                    <div className="bg-red-900/30 border border-red-600 rounded p-3 mb-4">
+                      <p className="text-red-300 text-xs">
+                        <strong>Warning:</strong> Once minted, these slots will
+                        be auctioned immediately. Winners can watch you and give
+                        you instructions during their time slot.
+                      </p>
+                    </div>
+
+                    <button
+                      onClick={mintNFTsAndStartStream}
+                      disabled={isMinting}
+                      className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white font-bold py-3 rounded-lg transition duration-200 mb-3"
+                    >
+                      {isMinting
+                        ? "Minting NFTs & Starting Stream..."
+                        : "MINT NFTs & START STREAM"}
+                    </button>
+
+                    <button
+                      onClick={checkForNFTs}
+                      disabled={isCheckingNFTs}
+                      className="w-full bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white text-sm font-medium py-2 rounded transition duration-200"
+                    >
+                      {isCheckingNFTs
+                        ? "Checking..."
+                        : "🔄 Already Minted? Check Again"}
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-6">
+              <div className="text-center">
+                <div className="bg-green-900/30 border border-green-600 rounded-lg p-4 mb-6">
+                  <p className="text-green-400 font-bold text-lg">
+                    ✅ {nftCount} TIME SLOTS FOUND
+                  </p>
+                  <p className="text-gray-300 text-sm mt-1">
+                    Your time slots are ready for auction
+                  </p>
+                </div>
+
+                <div className="bg-black text-white font-mono text-xs p-3 rounded border border-gray-600 mb-6 break-all">
+                  {walletAddress}
+                </div>
+
+                <button
+                  onClick={connectToRoom}
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-lg text-xl transition duration-200"
+                >
+                  🎥 START STREAMING NOW
+                </button>
+
+                <button
+                  onClick={checkForNFTs}
+                  disabled={isCheckingNFTs}
+                  className="w-full mt-2 text-gray-400 hover:text-gray-200 text-sm py-2 transition duration-200"
+                >
+                  {isCheckingNFTs ? "Checking..." : "🔄 Refresh NFT Count"}
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -143,11 +410,39 @@ export default function StreamPage() {
   return (
     <TokenContext.Provider value={authToken}>
       <LiveKitRoom serverUrl={serverUrl} token={roomToken}>
+        {/* Instructions overlay at the very top */}
+        <InstructionsOverlay
+          instructions={currentInstructions}
+          winner={currentWinner}
+          slotEndTime={slotEndTime}
+          currentTime={currentTime}
+        />
+
         <StreamingContent
           roomName={roomName}
           isStreaming={isStreaming}
           setIsStreaming={setIsStreaming}
           streamingStarted={streamingStarted}
+        />
+
+        {roomName && (
+          <VLMMonitor
+            roomName={roomName}
+            mainTaskPrompt={
+              currentInstructions ||
+              "Monitor the stream and describe what you see"
+            }
+            chunkTimeMinutes={1}
+          />
+        )}
+
+        {/* Debug Overlay */}
+        <DebugOverlay
+          roomName={roomName}
+          currentInstructions={currentInstructions}
+          currentWinner={currentWinner}
+          slotEndTime={slotEndTime}
+          isStreaming={isStreaming}
         />
       </LiveKitRoom>
     </TokenContext.Provider>

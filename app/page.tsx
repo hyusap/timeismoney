@@ -25,7 +25,7 @@ export default function Home() {
 
       if (response.ok) {
         const rooms = await response.json();
-        console.log("Fetched rooms:", rooms);
+        //console.log("Fetched rooms:", rooms);
         setActiveRooms(rooms);
       } else {
         console.error("Failed to fetch rooms, status:", response.status);
@@ -116,6 +116,12 @@ export default function Home() {
               className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-md font-medium transition duration-200"
             >
               Browse All Streams
+            </Link>
+            <Link
+              href="/auctions"
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
+            >
+              Time Auctions
             </Link>
           </div>
         </div>

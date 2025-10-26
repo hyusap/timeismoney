@@ -1,7 +1,7 @@
 {
   "scripts": {
     "setup": "./conductor-setup.sh",
-    "run": "PORT=$CONDUCTOR_PORT bun dev"
+    "run": "PORT=$CONDUCTOR_PORT bun dev & sleep 3; open http://localhost:$CONDUCTOR_PORT ; echo opened "
   },
   "runScriptMode": "nonconcurrent"
 }

@@ -6,9 +6,18 @@ import { createLocalTracks, Track } from "livekit-client";
 import { useEffect, useState, useRef } from "react";
 import { VLMMonitor } from "../components/vlm-monitor";
 import { InstructionsOverlay } from "../components/instructions-overlay";
-import { DebugOverlay } from "../components/debug-overlay";
-import { ConnectButton, useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { queryTimeSlotsByOwner, PACKAGE_ID, CLOCK_OBJECT_ID } from "@/lib/sui/time-auction";
+// import { DebugOverlay } from "../components/debug-overlay";
+import {
+  ConnectButton,
+  useCurrentAccount,
+  useSuiClient,
+  useSignAndExecuteTransaction,
+} from "@mysten/dapp-kit";
+import {
+  queryTimeSlotsByOwner,
+  PACKAGE_ID,
+  CLOCK_OBJECT_ID,
+} from "@/lib/sui/time-auction";
 import { Transaction } from "@mysten/sui/transactions";
 
 interface TimeSlotMonitorResponse {
@@ -39,7 +48,9 @@ export default function StreamPage() {
   const [streamDurationHours, setStreamDurationHours] = useState(4);
 
   // Time slot monitoring
-  const [currentInstructions, setCurrentInstructions] = useState<string | null>(null);
+  const [currentInstructions, setCurrentInstructions] = useState<string | null>(
+    null
+  );
   const [currentWinner, setCurrentWinner] = useState<string | null>(null);
   const [slotEndTime, setSlotEndTime] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -59,7 +70,7 @@ export default function StreamPage() {
 
       // Filter for upcoming/future slots (not completed)
       const now = Date.now();
-      const upcomingSlots = slots.filter(slot => {
+      const upcomingSlots = slots.filter((slot) => {
         const endTime = Number(slot.startTime) + Number(slot.durationMs);
         return endTime > now; // Slot hasn't ended yet
       });
@@ -101,8 +112,10 @@ export default function StreamPage() {
       if (i < MAX_RETRIES - 1) {
         // Exponential backoff: 1s, 2s, 4s, 8s, then cap at 8s
         const delay = Math.min(INITIAL_DELAY * Math.pow(2, i), 8000);
-        console.log(`⏳ NFTs not found yet, waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(
+          `⏳ NFTs not found yet, waiting ${delay}ms before retry...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
@@ -113,7 +126,7 @@ export default function StreamPage() {
   // Check for NFTs when wallet connects and auto-start stream if found
   useEffect(() => {
     if (isConnected && walletAddress) {
-      checkForNFTs().then(found => {
+      checkForNFTs().then((found) => {
         if (found) {
           // Auto-start stream if NFTs are found
           connectToRoom();
@@ -135,7 +148,7 @@ export default function StreamPage() {
 
     try {
       const SLOT_DURATION_MS = 60 * 1000; // 1 minute for testing
-      const MIN_BID_DOLLARS = 1.00; // $1.00 in UI = 10,000 MIST on-chain
+      const MIN_BID_DOLLARS = 1.0; // $1.00 in UI = 10,000 MIST on-chain
       const AUCTION_DURATION_HOURS = 24;
 
       const numSlots = (streamDurationHours * 60) / 1; // 1-minute slots
@@ -153,11 +166,14 @@ export default function StreamPage() {
 
       for (let i = 0; i < numSlots; i++) {
         // Start immediately, no offset
-        const slotStartTime = now + (i * SLOT_DURATION_MS);
+        const slotStartTime = now + i * SLOT_DURATION_MS;
 
         if (i === 0) {
           console.log("First slot start time:", slotStartTime);
-          console.log("First slot formatted:", new Date(slotStartTime).toISOString());
+          console.log(
+            "First slot formatted:",
+            new Date(slotStartTime).toISOString()
+          );
         }
 
         tx.moveCall({
@@ -238,7 +254,9 @@ export default function StreamPage() {
 
     const fetchTimeSlot = async () => {
       try {
-        const res = await fetch(`/api/time-slot-monitor?streamerAddress=${walletAddress}`);
+        const res = await fetch(
+          `/api/time-slot-monitor?streamerAddress=${walletAddress}`
+        );
         const data: TimeSlotMonitorResponse = await res.json();
 
         if (data.hasActiveSlot) {
@@ -267,13 +285,13 @@ export default function StreamPage() {
 
   if (!authToken || !roomToken) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <div className="bg-gray-900 border-2 border-red-600 rounded-lg p-8 max-w-2xl w-full">
-          <h1 className="text-4xl font-bold text-red-500 mb-2 text-center">
-            START STREAMING
+      <div className=" bg-black flex items-center justify-center p-6">
+        <div className=" max-w-2xl w-full">
+          <h1 className="text-4xl font-medium tracking-tight font-cormorant italic text-red-500 mb-2 text-center">
+            Start Streaming
           </h1>
-          <p className="text-gray-400 text-center mb-8 italic">
-            "Sell your time, live on camera"
+          <p className="text-gray-400 text-center mb-8 font-cormorant font-medium italic tracking-tight">
+            &quot;Sell your time, live on camera&quot;
           </p>
 
           {!isConnected ? (
@@ -302,16 +320,22 @@ export default function StreamPage() {
               ) : (
                 <>
                   <div className="bg-red-900/30 border border-red-600 rounded-lg p-4 text-center">
-                    <h3 className="text-red-400 font-bold mb-2">❌ NO TIME SLOTS FOUND</h3>
+                    <h3 className="text-red-400 font-bold mb-2">
+                      ❌ NO TIME SLOTS FOUND
+                    </h3>
                     <p className="text-gray-300 text-sm">
-                      You have {nftCount} upcoming time slots. You must mint NFTs before streaming.
+                      You have {nftCount} upcoming time slots. You must mint
+                      NFTs before streaming.
                     </p>
                   </div>
 
                   <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
-                    <h3 className="text-yellow-400 font-bold mb-2">⚠️ STEP 1: MINT TIME SLOTS</h3>
+                    <h3 className="text-yellow-400 font-bold mb-2">
+                      ⚠️ STEP 1: MINT TIME SLOTS
+                    </h3>
                     <p className="text-gray-300 text-sm mb-4">
-                      Each slot is 15 minutes. Viewers will bid on your time, and the highest bidder controls what you do.
+                      Each slot is 15 minutes. Viewers will bid on your time,
+                      and the highest bidder controls what you do.
                     </p>
 
                     <div className="mb-4">
@@ -321,20 +345,24 @@ export default function StreamPage() {
                       <input
                         type="number"
                         value={streamDurationHours}
-                        onChange={(e) => setStreamDurationHours(Number(e.target.value))}
+                        onChange={(e) =>
+                          setStreamDurationHours(Number(e.target.value))
+                        }
                         min="1"
                         max="12"
                         className="w-full bg-gray-800 text-white border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-red-500"
                       />
                       <p className="text-gray-500 text-sm mt-1">
-                        Will create {streamDurationHours * 60} time slots (1 min each)
+                        Will create {streamDurationHours * 60} time slots (1 min
+                        each)
                       </p>
                     </div>
 
                     <div className="bg-red-900/30 border border-red-600 rounded p-3 mb-4">
                       <p className="text-red-300 text-xs">
-                        <strong>Warning:</strong> Once minted, these slots will be auctioned immediately.
-                        Winners can watch you and give you instructions during their time slot.
+                        <strong>Warning:</strong> Once minted, these slots will
+                        be auctioned immediately. Winners can watch you and give
+                        you instructions during their time slot.
                       </p>
                     </div>
 
@@ -343,7 +371,9 @@ export default function StreamPage() {
                       disabled={isMinting}
                       className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white font-bold py-3 rounded-lg transition duration-200 mb-3"
                     >
-                      {isMinting ? "Minting NFTs & Starting Stream..." : "MINT NFTs & START STREAM"}
+                      {isMinting
+                        ? "Minting NFTs & Starting Stream..."
+                        : "MINT NFTs & START STREAM"}
                     </button>
 
                     <button
@@ -351,7 +381,9 @@ export default function StreamPage() {
                       disabled={isCheckingNFTs}
                       className="w-full bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white text-sm font-medium py-2 rounded transition duration-200"
                     >
-                      {isCheckingNFTs ? "Checking..." : "🔄 Already Minted? Check Again"}
+                      {isCheckingNFTs
+                        ? "Checking..."
+                        : "🔄 Already Minted? Check Again"}
                     </button>
                   </div>
                 </>
@@ -361,7 +393,9 @@ export default function StreamPage() {
             <div className="space-y-6">
               <div className="text-center">
                 <div className="bg-green-900/30 border border-green-600 rounded-lg p-4 mb-6">
-                  <p className="text-green-400 font-bold text-lg">✅ {nftCount} TIME SLOTS FOUND</p>
+                  <p className="text-green-400 font-bold text-lg">
+                    ✅ {nftCount} TIME SLOTS FOUND
+                  </p>
                   <p className="text-gray-300 text-sm mt-1">
                     Your time slots are ready for auction
                   </p>
@@ -390,7 +424,9 @@ export default function StreamPage() {
       <LiveKitRoom serverUrl={serverUrl} token={roomToken}>
         {/* Your address at the very top */}
         <div className="fixed top-0 left-0 right-0 z-50 bg-black/90 border-b border-gray-700 px-4 py-2">
-          <div className="text-yellow-400 text-xs font-semibold">Your Address:</div>
+          <div className="text-yellow-400 text-xs font-semibold">
+            Your Address:
+          </div>
           <div className="text-white text-xs font-mono mt-1">
             {walletAddress?.slice(0, 12)}...{walletAddress?.slice(-8)}
           </div>
@@ -416,19 +452,22 @@ export default function StreamPage() {
         {roomName && (
           <VLMMonitor
             roomName={roomName}
-            mainTaskPrompt={currentInstructions || "Monitor the stream and describe what you see"}
+            mainTaskPrompt={
+              currentInstructions ||
+              "Monitor the stream and describe what you see"
+            }
             chunkTimeMinutes={1}
           />
         )}
 
         {/* Debug Overlay */}
-        <DebugOverlay
+        {/* <DebugOverlay
           roomName={roomName}
           currentInstructions={currentInstructions}
           currentWinner={currentWinner}
           slotEndTime={slotEndTime}
           isStreaming={isStreaming}
-        />
+        /> */}
       </LiveKitRoom>
     </TokenContext.Provider>
   );

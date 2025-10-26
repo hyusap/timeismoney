@@ -114,9 +114,6 @@ export function Navbar() {
 
           {activeRooms.length > 0 && (
             <div className="relative group">
-              <button className="text-gray-300 hover:text-white text-sm">
-                View Rooms ↓
-              </button>
               <div className="absolute right-0 mt-2 w-64 bg-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
                 <div className="p-2">
                   {activeRooms.map((room) => (

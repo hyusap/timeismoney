@@ -3,7 +3,7 @@
 import { StreamPlayer } from "../../components/stream-player";
 import { TokenContext } from "../../components/token-context";
 import { NFTAuctionSidebar } from "../../components/nft-auction-sidebar";
-import { DebugOverlay } from "../../components/debug-overlay";
+// import { DebugOverlay } from "../../components/debug-overlay";
 import { LiveKitRoom } from "@livekit/components-react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useState, useEffect, use } from "react";
@@ -106,7 +106,7 @@ export default function ViewerPage({ params }: ViewerPageProps) {
         </div>
 
         {/* Debug Overlay */}
-        <DebugOverlay roomName={roomName} />
+        {/* <DebugOverlay roomName={roomName} /> */}
       </LiveKitRoom>
     </TokenContext.Provider>
   );

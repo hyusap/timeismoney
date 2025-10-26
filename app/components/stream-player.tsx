@@ -21,8 +21,6 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
   const participants = useParticipants();
 
   const remoteVideoTracks = useTracks([Track.Source.Camera]);
-  console.log("remoteVideoTracks", remoteVideoTracks);
-
   const remoteAudioTracks = useTracks([Track.Source.Microphone]);
 
   const [chatMessage, setChatMessage] = useState("");
@@ -32,6 +30,15 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
   const [isCurrentSlotOwner, setIsCurrentSlotOwner] = useState(false);
   const [currentSlotWinner, setCurrentSlotWinner] = useState<string | null>(null);
   const [isCheckingSlot, setIsCheckingSlot] = useState(false);
+  const [time, setTime] = useState(new Date());
+
+  // Update time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Check if viewer is the current slot owner
   useEffect(() => {
@@ -42,13 +49,6 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
       try {
         const res = await fetch(`/api/time-slot-monitor?streamerAddress=${roomName}`);
         const data = await res.json();
-
-        console.log("🎫 [Chat Access Check]", {
-          viewerAddress,
-          hasActiveSlot: data.hasActiveSlot,
-          winner: data.winner,
-          isOwner: data.winner?.toLowerCase() === viewerAddress.toLowerCase(),
-        });
 
         if (data.hasActiveSlot && data.winner) {
           setCurrentSlotWinner(data.winner);
@@ -78,8 +78,6 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
   const handleSendMessage = async () => {
     if (!chatMessage.trim() || !localParticipant) return;
 
-    console.log("💬 [Command] Sending command:", chatMessage);
-
     try {
       // Use room's data channel to send message to streamer
       const encoder = new TextEncoder();
@@ -93,7 +91,6 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
 
       // Send to the room
       localParticipant.publishData(data, { reliable: true });
-      console.log("✅ [Command] Data sent via LiveKit");
 
       // Trigger TTS via Deepgram for audio announcement
       fetch("/api/tts", {
@@ -103,16 +100,13 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
       })
         .then(async res => {
           if (res.ok) {
-            console.log("✅ [Command] TTS request successful, playing audio...");
             const audioBlob = await res.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
-            audio.play().catch(err => console.error("❌ [Command] Audio playback error:", err));
-          } else {
-            console.error("❌ [Command] TTS request failed:", res.status);
+            audio.play();
           }
         })
-        .catch(err => console.error("❌ [Command] TTS error:", err));
+        .catch(err => {});
 
       setChatMessage("");
     } catch (error) {
@@ -136,12 +130,91 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
           {remoteVideoTracks.map((t) => (
             <div
               key={t.participant.identity}
-              className="w-full h-full flex items-center justify-center"
+              className="relative w-full h-full flex items-center justify-center"
             >
               <VideoTrack
                 trackRef={t}
                 className="h-full w-auto object-contain"
+                style={{
+                  filter: "contrast(1.15) brightness(0.9) saturate(0.9)",
+                }}
               />
+
+              {/* Scan line effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: "repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0px, transparent 1px, transparent 2px, rgba(0, 0, 0, 0.2) 3px)",
+                  animation: "scan 10s linear infinite",
+                }}
+              />
+
+              {/* Vignette effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background: "radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.5) 100%)",
+                }}
+              />
+
+              {/* Noise overlay */}
+              <div
+                className="absolute inset-0 pointer-events-none opacity-15"
+                style={{
+                  backgroundImage: "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
+                  mixBlendMode: "overlay",
+                }}
+              />
+
+              {/* Chromatic aberration effect (subtle) */}
+              <div
+                className="absolute inset-0 pointer-events-none opacity-20"
+                style={{
+                  background: "linear-gradient(90deg, rgba(255,0,0,0.1) 0%, transparent 2%, transparent 98%, rgba(0,0,255,0.1) 100%)",
+                }}
+              />
+
+              {/* CCTV Overlays */}
+              {/* Top left: timestamp */}
+              <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 font-mono text-xs border border-white/20">
+                {time.toLocaleString("en-US", {
+                  month: "2-digit",
+                  day: "2-digit",
+                  year: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: false
+                })}
+              </div>
+
+              {/* Top right: live indicator */}
+              <div className="absolute top-2 right-2 flex items-center space-x-1 bg-black/70 px-2 py-1 border border-red-600/30">
+                <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                <span className="text-red-600 font-mono text-xs font-bold">REC</span>
+              </div>
+
+              {/* Bottom left: camera label */}
+              <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 font-mono text-xs border border-white/20">
+                {t.participant.identity.slice(0, 12).toUpperCase()}
+              </div>
+
+              {/* Corner markers (security cam style) */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600/40"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-red-600/40"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-red-600/40"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600/40"></div>
+
+              <style jsx>{`
+                @keyframes scan {
+                  0% {
+                    transform: translateY(-100%);
+                  }
+                  100% {
+                    transform: translateY(100%);
+                  }
+                }
+              `}</style>
             </div>
           ))}
         </div>

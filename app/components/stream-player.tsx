@@ -35,32 +35,48 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
 
   // Check if viewer is the current slot owner
   useEffect(() => {
-    if (!viewerAddress || !roomName) return;
+    if (!viewerAddress || !roomName) {
+      console.log("🎫 [Chat Access] Missing data:", { viewerAddress, roomName });
+      return;
+    }
 
     const checkSlotOwnership = async () => {
       setIsCheckingSlot(true);
       try {
-        const res = await fetch(`/api/time-slot-monitor?streamerAddress=${roomName}`);
+        const apiUrl = `/api/time-slot-monitor?streamerAddress=${roomName}`;
+        console.log("🎫 [Chat Access] Fetching from:", apiUrl);
+
+        const res = await fetch(apiUrl);
         const data = await res.json();
 
-        console.log("🎫 [Chat Access Check]", {
-          viewerAddress,
+        console.log("🎫 [Chat Access] API Response:", {
           hasActiveSlot: data.hasActiveSlot,
           winner: data.winner,
-          isOwner: data.winner?.toLowerCase() === viewerAddress.toLowerCase(),
+          slotStartTime: data.slotStartTime ? new Date(data.slotStartTime).toLocaleTimeString() : null,
+          slotEndTime: data.slotEndTime ? new Date(data.slotEndTime).toLocaleTimeString() : null,
+          currentTime: data.currentTime ? new Date(data.currentTime).toLocaleTimeString() : null,
+        });
+
+        console.log("🎫 [Chat Access] Comparison:", {
+          viewerAddress: viewerAddress,
+          winnerAddress: data.winner,
+          viewerLower: viewerAddress?.toLowerCase(),
+          winnerLower: data.winner?.toLowerCase(),
+          isMatch: data.winner?.toLowerCase() === viewerAddress.toLowerCase(),
         });
 
         if (data.hasActiveSlot && data.winner) {
+          const isOwner = data.winner.toLowerCase() === viewerAddress.toLowerCase();
           setCurrentSlotWinner(data.winner);
-          setIsCurrentSlotOwner(
-            data.winner.toLowerCase() === viewerAddress.toLowerCase()
-          );
+          setIsCurrentSlotOwner(isOwner);
+          console.log("🎫 [Chat Access] Setting isCurrentSlotOwner:", isOwner);
         } else {
           setCurrentSlotWinner(null);
           setIsCurrentSlotOwner(false);
+          console.log("🎫 [Chat Access] No active slot or winner - disabling chat");
         }
       } catch (error) {
-        console.error("Failed to check slot ownership:", error);
+        console.error("❌ [Chat Access] Failed to check slot ownership:", error);
         setIsCurrentSlotOwner(false);
       } finally {
         setIsCheckingSlot(false);
@@ -165,6 +181,17 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
       {/* Command Chat Box - Bottom of screen */}
       <div className="absolute bottom-4 left-4 right-4 z-50">
         <div className="max-w-md">
+          {console.log("💬 [Chat Bar] Rendering - isCurrentSlotOwner:", isCurrentSlotOwner)}
+
+          {/* Debug indicator */}
+          <div className="bg-blue-900/90 border border-blue-500 rounded-t px-3 py-1 mb-1">
+            <p className="text-blue-300 text-xs font-mono">
+              DEBUG: isCurrentSlotOwner={String(isCurrentSlotOwner)} |
+              winner={currentSlotWinner?.slice(0, 8) || 'none'} |
+              viewer={viewerAddress?.slice(0, 8) || 'none'}
+            </p>
+          </div>
+
           {isCurrentSlotOwner && (
             <div className="bg-green-900/90 border border-green-500 rounded-t px-3 py-1">
               <p className="text-green-400 text-xs font-bold">⚡ You control this time slot</p>
@@ -194,6 +221,12 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
                   : "bg-gray-700 text-gray-500 cursor-not-allowed"
               }`}
             >
+              {console.log("🔘 [Send Button] State:", {
+                isCurrentSlotOwner,
+                hasMessage: chatMessage.trim().length > 0,
+                isDisabled: !isCurrentSlotOwner || !chatMessage.trim(),
+                disabledReason: !isCurrentSlotOwner ? "Not slot owner" : !chatMessage.trim() ? "Empty message" : "Enabled"
+              })}
               Send
             </button>
           </div>

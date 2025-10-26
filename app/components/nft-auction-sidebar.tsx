@@ -2,32 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { queryTimeSlotsByOwner, TimeSlotInfo, mistToDollars, placeBidTx, setInstructionsTx, endAuctionTx } from "@/lib/sui/time-auction";
+import { queryTimeSlotsByOwner, TimeSlotInfo, mistToDollars, placeBidTx, endAuctionTx } from "@/lib/sui/time-auction";
 
 interface NFTAuctionSidebarProps {
   streamerAddress: string;
+  viewerMode?: boolean; // If true, always enable bidding (for viewer pages)
 }
 
-export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
+export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAuctionSidebarProps) {
   const account = useCurrentAccount();
   const client = useSuiClient();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
+
+  // Check if current user is the streamer (time slot owner)
+  // If viewerMode is true, always treat as non-streamer (viewer)
+  const isStreamer = viewerMode ? false : (account?.address.toLowerCase() === streamerAddress.toLowerCase());
 
   const [timeSlots, setTimeSlots] = useState<TimeSlotInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedSlot, setSelectedSlot] = useState<TimeSlotInfo | null>(null);
   const [bidAmount, setBidAmount] = useState("");
-  const [instructions, setInstructions] = useState("");
   const [isBidding, setIsBidding] = useState(false);
-  const [isSettingInstructions, setIsSettingInstructions] = useState(false);
   const [isFinalizingAuction, setIsFinalizingAuction] = useState(false);
   const [currentTime, setCurrentTime] = useState(new Date());
 
   const fetchTimeSlots = async () => {
     try {
       const slots = await queryTimeSlotsByOwner(client, streamerAddress);
-      // Sort by start time
-      slots.sort((a, b) => Number(a.startTime - b.startTime));
 
       const now = Date.now();
 
@@ -42,8 +43,16 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
         return endTime <= now;
       });
 
-      const recentCompleted = completed.slice(-5);
-      const filtered = [...recentCompleted, ...upcoming];
+      // Sort upcoming by start time (newest first for upcoming)
+      upcoming.sort((a, b) => Number(b.startTime - a.startTime));
+
+      // Get last 5 completed (most recent)
+      const recentCompleted = completed
+        .sort((a, b) => Number(b.startTime - a.startTime))
+        .slice(0, 5);
+
+      // Put upcoming first (latest at top), then recent completed at bottom
+      const filtered = [...upcoming, ...recentCompleted];
 
       setTimeSlots(filtered);
     } catch (error) {
@@ -72,6 +81,11 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
     const startTime = Number(slot.startTime);
     const endTime = startTime + Number(slot.durationMs);
     const auctionEnd = Number(slot.auctionEnd);
+
+    // Debug logging
+    const nowDate = new Date(now);
+    const startDate = new Date(startTime);
+    const endDate = new Date(endTime);
 
     if (now >= startTime && now < endTime) {
       return "LIVE NOW";
@@ -112,6 +126,18 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
       return;
     }
 
+    // Calculate minimum required bid
+    const currentBidDollars = mistToDollars(slot.currentBid);
+    const minBidDollars = mistToDollars(slot.minBid);
+    const requiredBid = slot.currentBid > 0n
+      ? currentBidDollars + 0.0001 // Must be at least 1 MIST higher (0.0001 dollars)
+      : minBidDollars;
+
+    if (bidDollars < requiredBid) {
+      alert(`Bid too low! Must be at least $${requiredBid.toFixed(4)}`);
+      return;
+    }
+
     setIsBidding(true);
 
     try {
@@ -139,65 +165,6 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
     } finally {
       setIsBidding(false);
     }
-  };
-
-  const handleSetInstructions = async (slot: TimeSlotInfo) => {
-    if (!account) {
-      alert("Please connect your wallet");
-      return;
-    }
-
-    if (!instructions.trim()) {
-      alert("Please enter instructions");
-      return;
-    }
-
-    setIsSettingInstructions(true);
-
-    try {
-      const tx = setInstructionsTx(slot.objectId, instructions);
-
-      signAndExecuteTransaction(
-        { transaction: tx },
-        {
-          onSuccess: () => {
-            alert("Instructions set successfully!");
-            setInstructions("");
-            setSelectedSlot(null);
-            fetchTimeSlots();
-          },
-          onError: (error) => {
-            console.error("Failed to set instructions:", error);
-            alert(`Failed to set instructions: ${error.message}`);
-          },
-        }
-      );
-    } catch (error) {
-      console.error("Error setting instructions:", error);
-      alert("Failed to set instructions");
-    } finally {
-      setIsSettingInstructions(false);
-    }
-  };
-
-  const formatTime = (timestamp: bigint) => {
-    const date = new Date(Number(timestamp));
-    return date.toLocaleString(undefined, {
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const isWinner = (slot: TimeSlotInfo) => {
-    return account && slot.currentBidder === account.address;
-  };
-
-  const canSetInstructions = (slot: TimeSlotInfo) => {
-    const now = Date.now();
-    const auctionEnd = Number(slot.auctionEnd);
-    return isWinner(slot) && now >= auctionEnd;
   };
 
   const handleFinalizeAuction = async (slot: TimeSlotInfo) => {
@@ -235,6 +202,20 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
     }
   };
 
+  const formatTime = (timestamp: bigint) => {
+    const date = new Date(Number(timestamp));
+    return date.toLocaleString(undefined, {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const isWinner = (slot: TimeSlotInfo) => {
+    return account && slot.currentBidder === account.address;
+  };
+
   if (isLoading) {
     return (
       <div className="w-80 bg-gray-900 border-l border-gray-800 p-4">
@@ -257,7 +238,9 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
             </div>
           </div>
         </div>
-        <p className="text-gray-400 text-xs">Bid on {streamerAddress.slice(0, 8)}...'s time</p>
+        <p className="text-gray-400 text-xs">
+          {isStreamer ? "Your time slots" : `Bid on ${streamerAddress.slice(0, 8)}...'s time`}
+        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -270,54 +253,69 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
             const status = getSlotStatus(slot);
             const statusColor = getStatusColor(status);
             const winner = isWinner(slot);
-            const biddingOpen = status === "BIDDING OPEN";
 
             return (
               <div
                 key={slot.objectId}
-                className={`bg-gray-800 rounded-lg p-3 border ${
+                className={`bg-gray-800 rounded-lg p-4 border-2 ${
                   winner ? "border-green-500" : "border-gray-700"
                 } hover:border-red-500 transition-colors`}
               >
-                <div className="flex items-center justify-between mb-2">
+                {/* Time and Status */}
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <div className="text-white text-sm font-semibold">
+                      {formatTime(slot.startTime)}
+                    </div>
+                    <div className="text-gray-400 text-xs">15 minutes</div>
+                  </div>
                   <span className={`text-xs font-bold px-2 py-1 rounded ${statusColor}`}>
                     {status}
                   </span>
-                  {winner && (
-                    <span className="text-xs font-bold px-2 py-1 rounded bg-green-600 text-white">
-                      {biddingOpen ? "WINNING" : "YOU WON"}
-                    </span>
-                  )}
                 </div>
 
-                <div className="text-white text-sm font-semibold mb-1">
-                  {formatTime(slot.startTime)}
-                </div>
-                <div className="text-gray-400 text-xs mb-2">15 minutes</div>
+                {/* WINNER ADDRESS - PROMINENT */}
+                {slot.currentBidder ? (
+                  <div className="bg-gradient-to-r from-yellow-900/50 to-yellow-800/50 border-2 border-yellow-500 rounded-lg p-4 mb-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-yellow-400 font-bold text-sm">🏆 HIGHEST BIDDER</div>
+                      {winner && (
+                        <span className="text-xs font-bold px-2 py-1 rounded bg-green-600 text-white">
+                          YOU
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-white font-mono text-base font-bold bg-black/40 px-3 py-2 rounded border border-yellow-600/50">
+                      {slot.currentBidder.slice(0, 12)}...{slot.currentBidder.slice(-8)}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3 mb-3">
+                    <div className="text-gray-500 text-sm font-semibold">No bids yet</div>
+                  </div>
+                )}
 
-                <div className="bg-gray-900 rounded p-2 mb-2">
+                {/* Current Bid - Secondary */}
+                <div className="bg-gray-900 rounded p-2 mb-3">
                   <div className="text-gray-400 text-xs">Current Bid</div>
                   <div className="text-green-400 font-bold">
                     {slot.currentBid > 0n
                       ? `$${mistToDollars(slot.currentBid).toFixed(2)}`
                       : `Min: $${mistToDollars(slot.minBid).toFixed(2)}`}
                   </div>
-                  {slot.currentBidder && (
-                    <div className="text-gray-500 text-xs mt-1">
-                      {slot.currentBidder.slice(0, 8)}...
-                    </div>
-                  )}
                 </div>
 
-                {status === "BIDDING OPEN" && account && (
+                {/* Action Buttons - Only show for non-streamers */}
+                {status === "BIDDING OPEN" && account && !isStreamer && (
                   <button
                     onClick={() => setSelectedSlot(slot)}
-                    className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 rounded transition duration-200"
+                    className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 rounded transition duration-200 mb-2"
                   >
                     PLACE BID
                   </button>
                 )}
 
+                {/* Finalize Auction Button */}
                 {(() => {
                   const now = Date.now();
                   const auctionEnded = now >= Number(slot.auctionEnd);
@@ -327,92 +325,62 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
                     <button
                       onClick={() => handleFinalizeAuction(slot)}
                       disabled={isFinalizingAuction}
-                      className="w-full bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-gray-300 hover:text-white text-xs font-semibold py-2 rounded transition duration-200 border border-gray-600"
+                      className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-800 text-white text-xs font-semibold py-2 rounded transition duration-200 border border-purple-500 mb-2"
                     >
                       {isFinalizingAuction ? "FINALIZING..." : "⚡ FINALIZE AUCTION"}
                     </button>
                   ) : null;
                 })()}
-
-                {canSetInstructions(slot) && (
-                  <button
-                    onClick={() => setSelectedSlot(slot)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-bold py-2 rounded transition duration-200"
-                  >
-                    SET INSTRUCTIONS
-                  </button>
-                )}
               </div>
             );
           })
         )}
       </div>
 
-      {/* Bidding Modal */}
-      {selectedSlot && getSlotStatus(selectedSlot) === "BIDDING OPEN" && (
-        <div className="border-t border-gray-800 p-4 bg-gray-950">
-          <h3 className="text-white font-bold mb-2">Place Bid</h3>
-          <div className="text-gray-400 text-xs mb-3">
-            Slot: {formatTime(selectedSlot.startTime)}
-          </div>
-          <input
-            type="number"
-            step="1.00"
-            min="1.00"
-            value={bidAmount}
-            onChange={(e) => setBidAmount(e.target.value)}
-            placeholder="Amount in $ (e.g. 1.00)"
-            className="w-full bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 mb-3 text-sm focus:outline-none focus:border-red-500"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={() => handlePlaceBid(selectedSlot)}
-              disabled={isBidding}
-              className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white text-sm font-bold py-2 rounded transition duration-200"
-            >
-              {isBidding ? "Bidding..." : "Confirm Bid"}
-            </button>
-            <button
-              onClick={() => setSelectedSlot(null)}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold py-2 rounded transition duration-200"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Bidding Modal - Only for non-streamers */}
+      {selectedSlot && getSlotStatus(selectedSlot) === "BIDDING OPEN" && !isStreamer && (() => {
+        const currentBidDollars = mistToDollars(selectedSlot.currentBid);
+        const minBidDollars = mistToDollars(selectedSlot.minBid);
+        const requiredBid = selectedSlot.currentBid > 0n
+          ? currentBidDollars + 0.0001
+          : minBidDollars;
 
-      {/* Instructions Modal */}
-      {selectedSlot && canSetInstructions(selectedSlot) && (
-        <div className="border-t border-gray-800 p-4 bg-gray-950">
-          <h3 className="text-white font-bold mb-2">Set Instructions</h3>
-          <div className="text-gray-400 text-xs mb-3">
-            Tell the streamer what to do during your slot
+        return (
+          <div className="border-t border-gray-800 p-4 bg-gray-950">
+            <h3 className="text-white font-bold mb-2">Place Bid</h3>
+            <div className="text-gray-400 text-xs mb-2">
+              Slot: {formatTime(selectedSlot.startTime)}
+            </div>
+            <div className="text-yellow-400 text-xs mb-3 font-semibold">
+              Minimum bid: ${requiredBid.toFixed(4)}
+            </div>
+            <input
+              type="number"
+              step="0.01"
+              value={bidAmount}
+              onChange={(e) => setBidAmount(e.target.value)}
+              placeholder={`Amount in $ (min: ${requiredBid.toFixed(4)})`}
+              className="w-full bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 mb-3 text-sm focus:outline-none focus:border-red-500"
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={() => handlePlaceBid(selectedSlot)}
+                disabled={isBidding}
+                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white text-sm font-bold py-2 rounded transition duration-200"
+              >
+                {isBidding ? "Bidding..." : "Confirm Bid"}
+              </button>
+              <button
+                onClick={() => setSelectedSlot(null)}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold py-2 rounded transition duration-200"
+              >
+                Cancel
+              </button>
+            </div>
           </div>
-          <textarea
-            value={instructions}
-            onChange={(e) => setInstructions(e.target.value)}
-            placeholder="Your instructions..."
-            rows={3}
-            className="w-full bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 mb-3 text-sm focus:outline-none focus:border-blue-500 resize-none"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleSetInstructions(selectedSlot)}
-              disabled={isSettingInstructions}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white text-sm font-bold py-2 rounded transition duration-200"
-            >
-              {isSettingInstructions ? "Setting..." : "Set Instructions"}
-            </button>
-            <button
-              onClick={() => setSelectedSlot(null)}
-              className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold py-2 rounded transition duration-200"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      )}
+        );
+      })()}
+
     </div>
   );
 }

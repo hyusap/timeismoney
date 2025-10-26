@@ -47,9 +47,9 @@ export default function StreamPage() {
   const walletAddress = account?.address || null;
   const isConnected = !!account;
 
-  const checkForNFTs = async () => {
+  const checkForNFTs = async (retryCount = 0): Promise<boolean> => {
     if (!isConnected || !walletAddress) {
-      return;
+      return false;
     }
 
     setIsCheckingNFTs(true);
@@ -68,16 +68,46 @@ export default function StreamPage() {
 
       if (upcomingSlots.length > 0) {
         setHasMintedNFTs(true);
+        setIsCheckingNFTs(false);
+        return true;
       } else {
         setHasMintedNFTs(false);
+        setIsCheckingNFTs(false);
+        return false;
       }
     } catch (error) {
       console.error("Error checking NFTs:", error);
       setHasMintedNFTs(false);
       setNftCount(0);
-    } finally {
       setIsCheckingNFTs(false);
+      return false;
     }
+  };
+
+  const checkForNFTsWithRetry = async (): Promise<boolean> => {
+    const MAX_RETRIES = 10;
+    const INITIAL_DELAY = 1000; // Start with 1 second
+
+    for (let i = 0; i < MAX_RETRIES; i++) {
+      console.log(`🔄 Checking for NFTs (attempt ${i + 1}/${MAX_RETRIES})...`);
+
+      const found = await checkForNFTs();
+
+      if (found) {
+        console.log("✅ NFTs found!");
+        return true;
+      }
+
+      if (i < MAX_RETRIES - 1) {
+        // Exponential backoff: 1s, 2s, 4s, 8s, then cap at 8s
+        const delay = Math.min(INITIAL_DELAY * Math.pow(2, i), 8000);
+        console.log(`⏳ NFTs not found yet, waiting ${delay}ms before retry...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    console.error("❌ Failed to find NFTs after all retries");
+    return false;
   };
 
   // Check for NFTs when wallet connects
@@ -146,14 +176,16 @@ export default function StreamPage() {
             console.log("✅ Slots created successfully:", result);
             console.log("✅ Transaction digest:", result.digest);
 
-            // Wait a moment for blockchain to update
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            // Wait for blockchain to propagate and check with retries
+            const found = await checkForNFTsWithRetry();
 
-            // Check for NFTs
-            await checkForNFTs();
-
-            // Auto-start stream
-            await connectToRoom();
+            if (found) {
+              // Auto-start stream
+              await connectToRoom();
+            } else {
+              alert("NFTs were minted but not detected. Please refresh the page and try again.");
+              setIsMinting(false);
+            }
           },
           onError: (error) => {
             console.error("Failed to create slots:", error);
@@ -372,13 +404,23 @@ export default function StreamPage() {
   return (
     <TokenContext.Provider value={authToken}>
       <LiveKitRoom serverUrl={serverUrl} token={roomToken}>
-        {/* Instructions overlay at the very top */}
-        <InstructionsOverlay
-          instructions={currentInstructions}
-          winner={currentWinner}
-          slotEndTime={slotEndTime}
-          currentTime={currentTime}
-        />
+        {/* Your address at the very top */}
+        <div className="fixed top-0 left-0 right-0 z-50 bg-black/90 border-b border-gray-700 px-4 py-2">
+          <div className="text-yellow-400 text-xs font-semibold">Your Address:</div>
+          <div className="text-white text-xs font-mono mt-1">
+            {walletAddress?.slice(0, 12)}...{walletAddress?.slice(-8)}
+          </div>
+        </div>
+
+        {/* Instructions overlay below address bar */}
+        <div className="mt-16">
+          <InstructionsOverlay
+            instructions={currentInstructions}
+            winner={currentWinner}
+            slotEndTime={slotEndTime}
+            currentTime={currentTime}
+          />
+        </div>
 
         <StreamingContent
           roomName={roomName}

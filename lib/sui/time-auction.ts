@@ -208,12 +208,24 @@ export async function getTimeSlotInfo(
 
     const fields = object.data.content.fields as any;
 
+    // Extract the bidder address
+    let currentBidder: string | null = null;
+    if (fields.current_bidder) {
+      if (fields.current_bidder.vec && fields.current_bidder.vec.length > 0) {
+        currentBidder = fields.current_bidder.vec[0];
+      } else if (typeof fields.current_bidder === 'string') {
+        currentBidder = fields.current_bidder;
+      } else if (fields.current_bidder.fields) {
+        currentBidder = fields.current_bidder.fields;
+      }
+    }
+
     return {
       objectId: slotId,
       startTime: BigInt(fields.start_time),
       durationMs: BigInt(fields.duration_ms),
       timeOwner: fields.time_owner,
-      currentBidder: fields.current_bidder?.vec?.[0] || null,
+      currentBidder,
       currentBid: BigInt(fields.current_bid),
       minBid: BigInt(fields.min_bid),
       auctionEnd: BigInt(fields.auction_end),

@@ -146,7 +146,7 @@ export function NFTAuctionSidebar({
     const currentBidDollars = mistToDollars(slot.currentBid);
     const minBidDollars = mistToDollars(slot.minBid);
     const requiredBid =
-      slot.currentBid > 0n
+      slot.currentBid > BigInt(0)
         ? currentBidDollars + 0.0001 // Must be at least 1 MIST higher (0.0001 dollars)
         : minBidDollars;
 
@@ -229,6 +229,33 @@ export function NFTAuctionSidebar({
     });
   };
 
+  const formatRelativeTime = (timestamp: bigint) => {
+    const now = Date.now();
+    const slotTime = Number(timestamp);
+    const diffMs = slotTime - now;
+
+    // If in the past, show "LIVE" or "ENDED"
+    if (diffMs < 0) {
+      const endTime = slotTime + Number(900000); // 15 min duration
+      if (now < endTime) {
+        return "LIVE NOW";
+      }
+      return "- ENDED";
+    }
+
+    const diffMinutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+
+    if (hours === 0) {
+      return `in ${minutes}m`;
+    } else if (minutes === 0) {
+      return `in ${hours}hr`;
+    } else {
+      return `in ${hours}hr ${minutes}m`;
+    }
+  };
+
   const isWinner = (slot: TimeSlotInfo) => {
     return account && slot.currentBidder === account.address;
   };
@@ -294,9 +321,11 @@ export function NFTAuctionSidebar({
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <div className="text-white text-sm font-semibold">
+                      {formatRelativeTime(slot.startTime)}
+                    </div>
+                    <div className="text-gray-400 text-xs">
                       {formatTime(slot.startTime)}
                     </div>
-                    <div className="text-gray-400 text-xs">15 minutes</div>
                   </div>
                   <span
                     className={`text-xs font-bold px-2 py-1 rounded ${statusColor}`}
@@ -306,7 +335,7 @@ export function NFTAuctionSidebar({
                 </div>
 
                 {/* WINNER ADDRESS - PROMINENT */}
-                {slot.currentBidder ? (
+                {slot.currentBidder && (
                   <div className="bg-gradient-to-r from-yellow-900/50 to-yellow-800/50 border-2 border-yellow-500 rounded-lg p-4 mb-3">
                     <div className="flex items-center justify-between mb-2">
                       <div className="text-yellow-400 font-bold text-sm">
@@ -323,19 +352,13 @@ export function NFTAuctionSidebar({
                       {slot.currentBidder.slice(-8)}
                     </div>
                   </div>
-                ) : (
-                  <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3 mb-3">
-                    <div className="text-gray-500 text-sm font-semibold">
-                      No bids yet
-                    </div>
-                  </div>
                 )}
 
                 {/* Current Bid - Secondary */}
                 <div className="bg-gray-900 rounded p-2 mb-3">
                   <div className="text-gray-400 text-xs">Current Bid</div>
                   <div className="text-green-400 font-bold">
-                    {slot.currentBid > 0n
+                    {slot.currentBid > BigInt(0)
                       ? `$${mistToDollars(slot.currentBid).toFixed(2)}`
                       : `$${mistToDollars(slot.minBid).toFixed(2)}`}
                   </div>
@@ -379,7 +402,7 @@ export function NFTAuctionSidebar({
         )}
       </div>
 
-      {/* Bidding Modal - Only for non-streamers */}
+      {/* Bidding Modal - Full Screen Overlay - Only for non-streamers */}
       {selectedSlot &&
         getSlotStatus(selectedSlot) === "BIDDING OPEN" &&
         !isStreamer &&
@@ -387,41 +410,98 @@ export function NFTAuctionSidebar({
           const currentBidDollars = mistToDollars(selectedSlot.currentBid);
           const minBidDollars = mistToDollars(selectedSlot.minBid);
           const requiredBid =
-            selectedSlot.currentBid > 0n
+            selectedSlot.currentBid > BigInt(0)
               ? currentBidDollars + 0.0001
               : minBidDollars;
 
           return (
-            <div className="border-t border-gray-800 p-4 bg-gray-950">
-              <h3 className="text-white font-bold mb-2">Place Bid</h3>
-              <div className="text-gray-400 text-xs mb-2">
-                Slot: {formatTime(selectedSlot.startTime)}
-              </div>
-              <div className="text-yellow-400 text-xs mb-3 font-semibold">
-                Minimum bid: ${requiredBid.toFixed(4)}
-              </div>
-              <input
-                type="number"
-                step="0.01"
-                value={bidAmount}
-                onChange={(e) => setBidAmount(e.target.value)}
-                placeholder={`Amount in $ (min: ${requiredBid.toFixed(4)})`}
-                className="w-full bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 mb-3 text-sm focus:outline-none focus:border-red-500"
-              />
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handlePlaceBid(selectedSlot)}
-                  disabled={isBidding}
-                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white text-sm font-bold py-2 rounded transition duration-200"
-                >
-                  {isBidding ? "Bidding..." : "Confirm Bid"}
-                </button>
-                <button
-                  onClick={() => setSelectedSlot(null)}
-                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold py-2 rounded transition duration-200"
-                >
-                  Cancel
-                </button>
+            <div className="fixed inset-0 bg-black/70 bg-opacity-95 z-50 flex items-center justify-center p-4">
+              <div className="bg-black rounded-lg  max-w-md w-full p-8">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h2 className="font-cormorant font-medium italic tracking-tight text-3xl  text-white mb-2">
+                      Place Bid
+                    </h2>
+                    <div className="text-gray-400 text-sm">
+                      Slot: {formatTime(selectedSlot.startTime)}
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSelectedSlot(null);
+                      setBidAmount("");
+                    }}
+                    className="text-white cursor-pointer hover:text-white transition"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-6 w-6"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+
+                {selectedSlot.currentBid > 0 && (
+                  <div className="mb-4 p-3 bg-gray-800 rounded border border-gray-700">
+                    <div className="text-gray-400 text-sm mb-1">
+                      Current Highest Bid
+                    </div>
+                    <div className="text-2xl font-bold text-red-500">
+                      ${mistToDollars(selectedSlot.currentBid).toFixed(2)}
+                    </div>
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <label className="block text-gray-300 text-sm font-medium mb-2">
+                    Your Bid Amount (USD)
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                      $
+                    </span>
+                    <input
+                      type="number"
+                      step="0.0001"
+                      min="0.0001"
+                      value={bidAmount}
+                      onChange={(e) => setBidAmount(e.target.value)}
+                      placeholder="0.0000"
+                      className="w-full bg-gray-800 text-white border border-gray-700 rounded-lg pl-8 pr-4 py-3 text-lg focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div className="text-gray-500 text-xs mt-2">
+                    Minimum bid: ${requiredBid.toFixed(4)}
+                  </div>
+                </div>
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setSelectedSlot(null);
+                      setBidAmount("");
+                    }}
+                    className="flex-1 bg-gray-700 hover:bg-gray-600 text-white font-semibold py-3 px-6 rounded-lg transition"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handlePlaceBid(selectedSlot)}
+                    disabled={isBidding || !bidAmount}
+                    className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-lg transition"
+                  >
+                    {isBidding ? "Processing..." : "Confirm Bid"}
+                  </button>
+                </div>
               </div>
             </div>
           );

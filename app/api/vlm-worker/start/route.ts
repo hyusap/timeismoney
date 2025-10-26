@@ -50,8 +50,8 @@ export async function POST(request: NextRequest) {
     // Create and start the VLM worker
     const worker = new VLMWorker({
       roomName: room_name,
-      serverUrl: joinResult.ws_url,
-      token: joinResult.livekit_token,
+      serverUrl: joinResult.connection_details.ws_url,
+      token: joinResult.connection_details.token,
       openRouterApiKey,
       frameInterval: frame_interval || 2000, // Default: 2 seconds (30 frames/min)
       vlmOptions: {

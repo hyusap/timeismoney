@@ -82,21 +82,21 @@ export function StreamThumbnail({
     );
   }
 
+  // Attach video track to video element
+  useEffect(() => {
+    if (videoRef.current && videoTracks.length > 0) {
+      const trackRef = videoTracks[0];
+      const mediaTrack = trackRef.publication?.track;
+      if (mediaTrack) {
+        videoRef.current.srcObject = new MediaStream([mediaTrack.mediaStreamTrack]);
+      }
+    }
+  }, [videoTracks]);
+
   return (
     <div className={`relative ${className}`}>
       {/* Hidden video element for capturing frames */}
-      <video ref={videoRef} className="hidden" autoPlay muted playsInline>
-        {videoTracks.map((track) => (
-          <track
-            key={track.participant.identity}
-            ref={(el) => {
-              if (el && track.track) {
-                el.srcObject = new MediaStream([track.track]);
-              }
-            }}
-          />
-        ))}
-      </video>
+      <video ref={videoRef} className="hidden" autoPlay muted playsInline />
 
       {/* Hidden canvas for capturing thumbnails */}
       <canvas ref={canvasRef} className="hidden" />

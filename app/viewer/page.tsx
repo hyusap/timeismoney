@@ -3,10 +3,10 @@
 import { StreamPlayer } from "../components/stream-player";
 import { TokenContext } from "../components/token-context";
 import { LiveKitRoom } from "@livekit/components-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function ViewerPage() {
+function ViewerContent() {
   const searchParams = useSearchParams();
   const [roomName, setRoomName] = useState("");
   const [authToken, setAuthToken] = useState("");
@@ -84,5 +84,13 @@ export default function ViewerPage() {
         </div>
       </LiveKitRoom>
     </TokenContext.Provider>
+  );
+}
+
+export default function ViewerPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen">Loading...</div>}>
+      <ViewerContent />
+    </Suspense>
   );
 }

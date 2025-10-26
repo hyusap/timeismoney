@@ -294,9 +294,11 @@ export function DebugOverlay({
                       </div>
 
                       {slot.currentBidder && (
-                        <div className="mt-2 text-xs">
-                          <span className="text-gray-500">Winner: </span>
-                          <span className="text-white font-mono">{slot.currentBidder.slice(0, 12)}...</span>
+                        <div className="mt-2 pt-2 border-t border-gray-700 text-xs">
+                          <div className="text-yellow-400 font-semibold mb-1">Current Winner:</div>
+                          <div className="text-white font-mono bg-black/50 px-2 py-1 rounded">
+                            {slot.currentBidder.slice(0, 12)}...{slot.currentBidder.slice(-8)}
+                          </div>
                         </div>
                       )}
                     </div>

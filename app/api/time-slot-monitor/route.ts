@@ -37,18 +37,33 @@ export async function GET(request: NextRequest) {
     const client = new SuiClient({ url: getFullnodeUrl('testnet') });
     const currentTime = Date.now();
 
+    console.log("🔍 [API] time-slot-monitor called for:", streamerAddress);
+    console.log("🔍 [API] Current time:", new Date(currentTime).toLocaleTimeString());
+
     // Query all time slots owned by this streamer
     const allSlots = await queryTimeSlotsByOwner(client, streamerAddress);
+    console.log("🔍 [API] Total slots found:", allSlots.length);
 
     // Find the active slot (current time is within slot window)
     const activeSlot = allSlots.find(slot => {
       const startTime = Number(slot.startTime);
       const endTime = startTime + Number(slot.durationMs);
+      const isActive = currentTime >= startTime && currentTime < endTime;
 
-      return currentTime >= startTime && currentTime < endTime;
+      if (isActive) {
+        console.log("🔍 [API] Active slot found:", {
+          slotId: slot.objectId.slice(0, 8),
+          startTime: new Date(startTime).toLocaleTimeString(),
+          endTime: new Date(endTime).toLocaleTimeString(),
+          currentBidder: slot.currentBidder,
+        });
+      }
+
+      return isActive;
     });
 
     if (!activeSlot) {
+      console.log("🔍 [API] No active slot found");
       // No active slot right now
       return NextResponse.json({
         hasActiveSlot: false,
@@ -75,7 +90,7 @@ export async function GET(request: NextRequest) {
     const slotStartTime = Number(activeSlot.startTime);
     const slotEndTime = slotStartTime + Number(activeSlot.durationMs);
 
-    return NextResponse.json({
+    const response = {
       hasActiveSlot: true,
       instructions: instructionsText,
       winner: activeSlot.currentBidder,
@@ -83,7 +98,11 @@ export async function GET(request: NextRequest) {
       slotEndTime,
       currentTime,
       slotId: activeSlot.objectId,
-    });
+    };
+
+    console.log("🔍 [API] Returning response:", response);
+
+    return NextResponse.json(response);
 
   } catch (error) {
     console.error('Error in time-slot-monitor API:', error);

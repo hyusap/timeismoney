@@ -6,10 +6,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { OpenRouterClient } from "@/lib/openrouter-client";
 
+interface ChatMessage {
+  message: string;
+  timestamp: number;
+  sender: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { image, prompt } = body;
+    const { image, prompt, recentMessages } = body;
 
     if (!image) {
       return NextResponse.json(
@@ -27,10 +33,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Build prompt with recent chat context if available
+    let finalPrompt = prompt || "What do you see in this image? Provide a detailed description.";
+
+    if (recentMessages && recentMessages.length > 0) {
+      const messages = (recentMessages as ChatMessage[])
+        .map(msg => `[${new Date(msg.timestamp).toLocaleTimeString()}] ${msg.sender}: ${msg.message}`)
+        .join("\n");
+
+      finalPrompt = `Recent commands from the time slot winner:
+${messages}
+
+Based on these recent commands and what you see in the image, describe what the person is doing. Focus on whether they are following the instructions given.`;
+    }
+
     // Analyze image
     const client = new OpenRouterClient(openRouterApiKey);
     const result = await client.analyzeImage(image, {
-      prompt: prompt || "What do you see in this image? Provide a detailed description.",
+      prompt: finalPrompt,
       maxTokens: 300,
     });
 

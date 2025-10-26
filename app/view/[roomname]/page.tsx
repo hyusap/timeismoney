@@ -102,7 +102,7 @@ export default function ViewerPage({ params }: ViewerPageProps) {
           </div>
 
           {/* NFT Auction Sidebar */}
-          <NFTAuctionSidebar streamerAddress={roomName} />
+          <NFTAuctionSidebar streamerAddress={roomName} viewerMode={true} />
         </div>
 
         {/* Debug Overlay */}

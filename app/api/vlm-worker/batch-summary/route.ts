@@ -5,10 +5,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+interface ChatMessage {
+  message: string;
+  timestamp: number;
+  sender: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { images, mainTaskPrompt } = body;
+    const { images, mainTaskPrompt, recentMessages } = body;
 
     if (!images || images.length === 0) {
       return NextResponse.json(
@@ -32,19 +38,27 @@ export async function POST(request: NextRequest) {
       )
       .join("\n");
 
+    // Build chat context if available
+    let chatContext = "";
+    if (recentMessages && recentMessages.length > 0) {
+      const messages = (recentMessages as ChatMessage[])
+        .map(msg => `[${new Date(msg.timestamp).toLocaleTimeString()}] ${msg.sender}: ${msg.message}`)
+        .join("\n");
+      chatContext = `\nWINNER COMMANDS DURING THIS BATCH:
+${messages}\n`;
+    }
+
     // Create batch analysis prompt
     const prompt = `You are analyzing a batch of ${images.length} frames from a video stream.
-
-MAIN TASK CONTEXT:
-${mainTaskPrompt}
-
+${chatContext}
+${mainTaskPrompt ? `TASK CONTEXT:\n${mainTaskPrompt}\n` : ""}
 FRAME DESCRIPTIONS:
 ${frameDescriptions}
 
-Based on the images you're about to see and their descriptions, provide a concise summary (2-3 sentences) of what happened in this batch. Focus on:
-1. Progress toward the main task
-2. Key activities observed
-3. Any important changes or events
+Based on the images you're about to see and their descriptions${recentMessages && recentMessages.length > 0 ? ", and the commands given by the time slot winner" : ""}, provide a concise summary (2-3 sentences) of what happened in this batch. Focus on:
+1. ${recentMessages && recentMessages.length > 0 ? "How the person responded to the winner's commands" : "Key activities observed"}
+2. Any progress or changes
+3. Notable events or actions
 
 Be specific and action-oriented.`;
 

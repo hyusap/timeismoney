@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useCurrentAccount, useWallets } from "@mysten/dapp-kit";
 
 interface ActiveRoom {
   name: string;
@@ -12,6 +13,28 @@ interface ActiveRoom {
 export function Navbar() {
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showWalletDropdown, setShowWalletDropdown] = useState(false);
+  const account = useCurrentAccount();
+  const wallets = useWallets();
+  const currentWallet = wallets[0];
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".wallet-dropdown")) {
+        setShowWalletDropdown(false);
+      }
+    };
+
+    if (showWalletDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showWalletDropdown]);
 
   const fetchActiveRooms = async () => {
     setIsLoading(true);
@@ -56,17 +79,78 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
-          <div className="text-sm">
-            <span className="text-gray-300">Active Rooms:</span>
-            {isLoading ? (
-              <span className="ml-2 text-gray-400">Loading...</span>
-            ) : (
-              <span className="ml-2 text-green-400 font-semibold">
-                {activeRooms.length}
-              </span>
+          {/* Wallet Dropdown */}
+          <div className="relative wallet-dropdown">
+            <button
+              onClick={() => setShowWalletDropdown(!showWalletDropdown)}
+              className="flex items-center space-x-2 rounded-md border border-gray-300 px-3 py-2 hover:bg-gray-50 transition"
+            >
+              {account ? (
+                <>
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span>Connected</span>
+                </>
+              ) : (
+                <>
+                  <div className="w-2 h-2 bg-red-500 rounded-full"></div>
+                  <span>Connect Wallet</span>
+                </>
+              )}
+            </button>
+
+            {/* Dropdown Menu */}
+            {showWalletDropdown && (
+              <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                {account ? (
+                  <>
+                    <div className="p-4 border-b border-gray-200">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                        <span className="font-semibold">Connected</span>
+                      </div>
+                      <div className="text-sm text-gray-600 break-all">
+                        {account.address}
+                      </div>
+                    </div>
+                    <div className="p-2">
+                      <button
+                        onClick={async () => {
+                          if (currentWallet?.features["standard:disconnect"]) {
+                            await currentWallet.features[
+                              "standard:disconnect"
+                            ].disconnect();
+                          }
+                          setShowWalletDropdown(false);
+                        }}
+                        className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition"
+                      >
+                        Disconnect Wallet
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <div className="p-4">
+                    <p className="text-sm text-gray-600 mb-3">
+                      Connect your wallet to start streaming
+                    </p>
+                    <button
+                      onClick={async () => {
+                        if (currentWallet?.features["standard:connect"]) {
+                          await currentWallet.features[
+                            "standard:connect"
+                          ].connect();
+                        }
+                        setShowWalletDropdown(false);
+                      }}
+                      className="w-full bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition"
+                    >
+                      Connect Wallet
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
           </div>
-
           {activeRooms.length > 0 && (
             <div className="relative group">
               <button className="text-gray-300 hover:text-white text-sm">

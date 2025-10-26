@@ -25,6 +25,11 @@ export default function SellTimePage() {
       return;
     }
 
+    if (!PACKAGE_ID) {
+      alert("Smart contract not deployed. Please set NEXT_PUBLIC_TIME_AUCTION_PACKAGE_ID environment variable.");
+      return;
+    }
+
     setIsCreatingSlots(true);
 
     try {

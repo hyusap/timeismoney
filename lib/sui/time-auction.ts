@@ -238,6 +238,10 @@ export async function queryTimeSlots(
   client: SuiClient,
   limit: number = 100
 ): Promise<TimeSlotInfo[]> {
+  if (!PACKAGE_ID) {
+    throw new Error('NEXT_PUBLIC_TIME_AUCTION_PACKAGE_ID environment variable is not set. Please deploy the smart contract first.');
+  }
+
   try {
     // Query SlotCreated events to find all time slot IDs
     const events = await client.queryEvents({

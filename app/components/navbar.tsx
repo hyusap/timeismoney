@@ -64,16 +64,14 @@ export function Navbar() {
         <div className="flex items-center space-x-6">
           <Link
             href="/"
-            className="text-3xl font-semibold flex items-center space-x-3 tracking-tighter"
+            className="text-3xl flex items-center space-x-3 tracking-tighter"
           >
             <img
               src="/a.svg"
-              className="w-10 h-10 -rotate-15 bg-white rounded-full flex items-center justify-center"
+              className="w-8 h-8 bg-white rounded-full flex items-center justify-center"
             />
 
-            <p className="font-[family-name:var(--font-geist-sans)]">
-              Human Capital
-            </p>
+            <p className="font-cormorant italic">Human Capital</p>
           </Link>
 
           {/* <Link
@@ -90,11 +88,11 @@ export function Navbar() {
             <input
               type="text"
               placeholder="Search..."
-              className="w-full px-4 py-2 bg-transparent border border-gray-700 rounded-full text-white placeholder-gray-500 focus:outline-none focus:border-gray-600"
+              className="w-full px-6  font-medium tracking-tighter text-lg py-2 bg-transparent border border-slate-700 rounded-full text-white placeholder-gray-500 focus:outline-none"
             />
           </div>
           <button
-            className="p-2 rounded-full hover:bg-gray-800 transition"
+            className="p-2 rounded-full hover:bg-slate-800 transition"
             title="Info"
           >
             <svg
@@ -103,7 +101,7 @@ export function Navbar() {
               viewBox="0 0 24 24"
               strokeWidth={1.5}
               stroke="currentColor"
-              className="w-5 h-5 text-gray-400"
+              className="w-5 h-5 text-slate-500"
             >
               <path
                 strokeLinecap="round"

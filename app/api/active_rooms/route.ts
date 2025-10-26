@@ -18,10 +18,13 @@ export async function GET() {
     console.log("rooms", rooms);
 
     // Transform room data
-    const activeRooms = rooms.map((room) => ({
-      name: room.name,
-      numParticipants: room.numParticipants,
-    }));
+    const activeRooms = rooms
+      .filter((room) => room.numPublishers > 0)
+      .map((room) => ({
+        name: room.name,
+        numParticipants: room.numParticipants,
+        numPublishers: room.numPublishers,
+      }));
 
     return Response.json(activeRooms);
   } catch (error) {

@@ -65,6 +65,10 @@ export default function Home() {
     "http://181.133.80.199:89/mjpg/video.mjpg",
     "http://109.228.134.144:81/mjpg/video.mjpg",
     "http://88.209.215.194:8801/mjpg/video.mjpg",
+    "http://92.247.13.209/mjpg/video.mjpg",
+    "http://63.142.190.238:6106/mjpg/video.mjpg",
+    "http://220.233.144.165:8888/mjpg/video.mjpg",
+    "http://holmen.tplinkdns.com/mjpg/video.mjpg",
   ];
 
   const fetchActiveRooms = async () => {

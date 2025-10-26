@@ -10,13 +10,16 @@ import {
 } from "@livekit/components-react";
 import { ConnectionState, Track, RemoteParticipant } from "livekit-client";
 import { useState, useEffect, useRef } from "react";
+import { normalizeSuiAddress } from "@mysten/sui/utils";
 
 interface StreamPlayerProps {
   viewerAddress?: string | null;
+  roomName?: string;
 }
 
-export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
-  const { name: roomName, state: roomState } = useRoomContext();
+export function StreamPlayer({ viewerAddress, roomName: propRoomName }: StreamPlayerProps = {}) {
+  const { name: contextRoomName, state: roomState } = useRoomContext();
+  const roomName = propRoomName || contextRoomName;
   const { localParticipant } = useLocalParticipant();
   const participants = useParticipants();
 
@@ -44,11 +47,14 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
 
   // Check if viewer is the current slot owner
   useEffect(() => {
+    console.log("🎫 [Chat Access] Effect triggered:", {
+      viewerAddress,
+      roomName,
+      roomState,
+    });
+
     if (!viewerAddress || !roomName) {
-      console.log("🎫 [Chat Access] Missing data:", {
-        viewerAddress,
-        roomName,
-      });
+      console.log("🎫 [Chat Access] Missing data - not checking slot ownership");
       return;
     }
 
@@ -75,17 +81,20 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
             : null,
         });
 
+        // Normalize addresses for proper comparison
+        const normalizedViewer = viewerAddress ? normalizeSuiAddress(viewerAddress) : null;
+        const normalizedWinner = data.winner ? normalizeSuiAddress(data.winner) : null;
+
         console.log("🎫 [Chat Access] Comparison:", {
           viewerAddress: viewerAddress,
           winnerAddress: data.winner,
-          viewerLower: viewerAddress?.toLowerCase(),
-          winnerLower: data.winner?.toLowerCase(),
-          isMatch: data.winner?.toLowerCase() === viewerAddress.toLowerCase(),
+          normalizedViewer,
+          normalizedWinner,
+          isMatch: normalizedWinner === normalizedViewer,
         });
 
-        if (data.hasActiveSlot && data.winner) {
-          const isOwner =
-            data.winner.toLowerCase() === viewerAddress.toLowerCase();
+        if (data.hasActiveSlot && data.winner && normalizedWinner) {
+          const isOwner = normalizedWinner === normalizedViewer;
           setCurrentSlotWinner(data.winner);
           setIsCurrentSlotOwner(isOwner);
           console.log("🎫 [Chat Access] Setting isCurrentSlotOwner:", isOwner);

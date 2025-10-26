@@ -1,4 +1,4 @@
-import { RoomServiceClient } from "livekit-server-sdk";
+import { RoomServiceClient, TrackType, TrackSource } from "livekit-server-sdk";
 import { NextRequest } from "next/server";
 
 export async function GET(
@@ -34,7 +34,7 @@ export async function GET(
     // Find a participant with video track
     const videoParticipant = participants.find((p) =>
       p.tracks.some(
-        (track) => track.type === "video" && track.source === "camera"
+        (track) => track.type === TrackType.VIDEO && track.source === TrackSource.CAMERA
       )
     );
 
@@ -44,7 +44,7 @@ export async function GET(
 
     // Get the video track
     const videoTrack = videoParticipant.tracks.find(
-      (track) => track.type === "video" && track.source === "camera"
+      (track) => track.type === TrackType.VIDEO && track.source === TrackSource.CAMERA
     );
 
     if (!videoTrack) {

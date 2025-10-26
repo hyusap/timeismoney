@@ -2,7 +2,7 @@
  * ChromaDB Client for storing VLM chunk summaries
  */
 
-import { CloudClient, IEmbeddingFunction } from "chromadb";
+import { CloudClient, EmbeddingFunction } from "chromadb";
 import OpenAI from "openai";
 
 let client: CloudClient | null = null;
@@ -38,7 +38,7 @@ export function getOpenAIClient(): OpenAI {
 }
 
 // Custom OpenAI embedding function for ChromaDB
-class OpenAIEmbeddingFunction implements IEmbeddingFunction {
+class OpenAIEmbeddingFunction implements EmbeddingFunction {
   private openai: OpenAI;
 
   constructor(openai: OpenAI) {
@@ -54,7 +54,7 @@ class OpenAIEmbeddingFunction implements IEmbeddingFunction {
   }
 }
 
-function getEmbeddingFunction(): IEmbeddingFunction {
+function getEmbeddingFunction(): EmbeddingFunction {
   const openai = getOpenAIClient();
   return new OpenAIEmbeddingFunction(openai);
 }

@@ -427,7 +427,7 @@ export default function StreamPage() {
                     </button>
 
                     <button
-                      onClick={checkForNFTs}
+                      onClick={() => checkForNFTs()}
                       disabled={isCheckingNFTs}
                       className="w-full bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white text-sm font-medium py-2 rounded transition duration-200"
                     >
@@ -509,6 +509,7 @@ export default function StreamPage() {
             {roomName && (
               <VLMMonitor
                 roomName={roomName}
+                walletAddress={walletAddress || undefined}
                 mainTaskPrompt={
                   currentInstructions ||
                   "Monitor the stream and describe what you see"

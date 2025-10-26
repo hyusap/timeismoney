@@ -100,7 +100,7 @@ export default function ViewerPage({ params }: ViewerPageProps) {
         <div className="w-full h-screen flex">
           {/* Main video area */}
           <div className="flex-1 relative">
-            <StreamPlayer viewerAddress={viewerAddress} />
+            <StreamPlayer viewerAddress={viewerAddress} roomName={roomName} />
 
             {/* History Search Button - Floating over video */}
             <button

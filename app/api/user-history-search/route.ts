@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
             taskCompleted: metadata.task_completed,
             mainTaskPrompt: metadata.main_task_prompt,
             frameCount: metadata.frame_count,
-            relevanceScore: distance !== undefined ? 1 - distance : 0,
+            relevanceScore: distance !== undefined && distance !== null ? 1 - distance : 0,
           });
         }
       }
@@ -77,9 +77,12 @@ export async function POST(request: NextRequest) {
 
     if (openRouterApiKey && formattedResults.length > 0) {
       const context = formattedResults
-        .map((r, idx) =>
-          `${idx + 1}. [${new Date(r.timestamp).toLocaleString()}] ${r.summary} (Task: ${r.mainTaskPrompt || "N/A"})`
-        )
+        .map((r, idx) => {
+          const timestamp = typeof r.timestamp === 'string' || typeof r.timestamp === 'number'
+            ? new Date(r.timestamp).toLocaleString()
+            : "Unknown time";
+          return `${idx + 1}. [${timestamp}] ${r.summary} (Task: ${r.mainTaskPrompt || "N/A"})`;
+        })
         .join("\n");
 
       const analysisPrompt = `Based on this user's activity history, answer this question: "${query}"

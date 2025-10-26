@@ -2,6 +2,8 @@
 
 import { StreamPlayer } from "../../components/stream-player";
 import { TokenContext } from "../../components/token-context";
+import { NFTAuctionSidebar } from "../../components/nft-auction-sidebar";
+import { DebugOverlay } from "../../components/debug-overlay";
 import { LiveKitRoom } from "@livekit/components-react";
 import { useState, useEffect, use } from "react";
 
@@ -89,9 +91,18 @@ export default function ViewerPage({ params }: ViewerPageProps) {
   return (
     <TokenContext.Provider value={authToken}>
       <LiveKitRoom serverUrl={serverUrl} token={roomToken}>
-        <div className="w-full h-screen">
-          <StreamPlayer />
+        <div className="w-full h-screen flex">
+          {/* Main video area */}
+          <div className="flex-1 relative">
+            <StreamPlayer />
+          </div>
+
+          {/* NFT Auction Sidebar */}
+          <NFTAuctionSidebar streamerAddress={roomName} />
         </div>
+
+        {/* Debug Overlay */}
+        <DebugOverlay roomName={roomName} />
       </LiveKitRoom>
     </TokenContext.Provider>
   );

@@ -119,8 +119,8 @@ export default function Home() {
                     <div className="text-gray-400 text-sm mb-1">Current Bid</div>
                     <div className="text-2xl font-bold text-green-400">
                       {slot.currentBid > 0n
-                        ? `$${mistToDollars(slot.currentBid).toFixed(6)}`
-                        : `Min: $${mistToDollars(slot.minBid).toFixed(6)}`}
+                        ? `$${mistToDollars(slot.currentBid).toFixed(2)}`
+                        : `Min: $${mistToDollars(slot.minBid).toFixed(2)}`}
                     </div>
                     {slot.currentBidder && (
                       <div className="text-gray-500 text-xs mt-1">

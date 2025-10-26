@@ -391,16 +391,17 @@ export async function getBidHistory(
   }
 }
 
-// Utility: Convert MIST to dollars (insane conversion rate)
-// 1 SUI (1,000,000,000 MIST) = $0.0001
-// So 1 MIST = $0.0000000001
+// Utility: Convert MIST to dollars
+// $1 in UI = 0.00001 SUI on-chain = 10,000 MIST
+// So 1 MIST = $0.0001
 export function mistToDollars(mist: bigint): number {
-  return Number(mist) / 10_000_000_000_000;
+  return Number(mist) / 10_000;
 }
 
 // Utility: Convert dollars to MIST
+// $1 in UI = 10,000 MIST on-chain
 export function dollarsToMist(dollars: number): bigint {
-  return BigInt(Math.floor(dollars * 10_000_000_000_000));
+  return BigInt(Math.floor(dollars * 10_000));
 }
 
 // Legacy exports for backwards compatibility

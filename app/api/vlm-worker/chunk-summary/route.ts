@@ -5,10 +5,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 
+interface ChatMessage {
+  message: string;
+  timestamp: number;
+  sender: string;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { sampleImages, batchSummaries, mainTaskPrompt, chunkDuration } = body;
+    const { sampleImages, batchSummaries, mainTaskPrompt, chunkDuration, recentMessages } = body;
 
     if (!sampleImages || sampleImages.length === 0) {
       return NextResponse.json(
@@ -38,28 +44,36 @@ export async function POST(request: NextRequest) {
       )
       .join("\n");
 
+    // Build chat context if available
+    let chatContext = "";
+    if (recentMessages && recentMessages.length > 0) {
+      const messages = (recentMessages as ChatMessage[])
+        .map(msg => `[${new Date(msg.timestamp).toLocaleTimeString()}] ${msg.sender}: ${msg.message}`)
+        .join("\n");
+      chatContext = `\nALL COMMANDS FROM TIME SLOT WINNER DURING THIS CHUNK:
+${messages}\n`;
+    }
+
     // Create comprehensive chunk analysis prompt
     const prompt = `You are analyzing a ${chunkDuration}-minute chunk of a video stream.
-
-MAIN TASK:
-${mainTaskPrompt}
-
+${chatContext}
+${mainTaskPrompt ? `TASK CONTEXT:\n${mainTaskPrompt}\n` : ""}
 CHRONOLOGICAL BATCH SUMMARIES:
 ${batchContext}
 
 SAMPLED FRAME DESCRIPTIONS:
 ${sampleDescriptions}
 
-Based on the ${sampleImages.length} sample images you're about to see, the batch summaries above, and the frame descriptions, provide:
+Based on the ${sampleImages.length} sample images you're about to see, the batch summaries above, ${recentMessages && recentMessages.length > 0 ? "the commands from the time slot winner, " : ""}and the frame descriptions, provide:
 
 1. CHUNK SUMMARY (3-4 sentences):
-   - What the person accomplished in this ${chunkDuration}-minute period
-   - Key activities and progress toward the main task
-   - Any challenges or changes in approach
+   - ${recentMessages && recentMessages.length > 0 ? "How the person responded to the winner's commands during this period" : "What the person accomplished in this period"}
+   - Key activities and observable actions
+   - Any notable events or changes
 
-2. TASK COMPLETION ANALYSIS:
-   - Has the person COMPLETED the main task described above?
-   - Be strict: only mark as complete if there's clear evidence the task is finished
+2. ${recentMessages && recentMessages.length > 0 ? "COMMAND COMPLETION ANALYSIS:" : "TASK COMPLETION ANALYSIS:"}
+   - ${recentMessages && recentMessages.length > 0 ? "Did the person follow and complete the winner's instructions?" : "Has the person COMPLETED the task?"}
+   - Be strict: only mark as complete if there's clear evidence
    - If uncertain or still in progress, mark as incomplete
 
 Format your response EXACTLY as:

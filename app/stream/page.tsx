@@ -7,6 +7,7 @@ import { useEffect, useState, useRef } from "react";
 import { VLMMonitor } from "../components/vlm-monitor";
 import { InstructionsOverlay } from "../components/instructions-overlay";
 import { DebugOverlay } from "../components/debug-overlay";
+import { NFTAuctionSidebar } from "../components/nft-auction-sidebar";
 import { ConnectButton, useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
 import { queryTimeSlotsByOwner, PACKAGE_ID, CLOCK_OBJECT_ID } from "@/lib/sui/time-auction";
 import { Transaction } from "@mysten/sui/transactions";
@@ -59,10 +60,23 @@ export default function StreamPage() {
 
       // Filter for upcoming/future slots (not completed)
       const now = Date.now();
+
+      console.log("🔍 [NFT CHECK] Total slots:", slots.length);
+      console.log("🔍 [NFT CHECK] Current time:", new Date(now).toISOString());
+
       const upcomingSlots = slots.filter(slot => {
-        const endTime = Number(slot.startTime) + Number(slot.durationMs);
-        return endTime > now; // Slot hasn't ended yet
+        const startTime = Number(slot.startTime);
+        const endTime = startTime + Number(slot.durationMs);
+        const hasStarted = startTime <= now;
+        const hasEnded = endTime <= now;
+
+        console.log(`  Slot: ${new Date(startTime).toISOString()} - ${new Date(endTime).toISOString()} | Started: ${hasStarted} | Ended: ${hasEnded}`);
+
+        // Only count slots that haven't started yet (truly upcoming)
+        return startTime > now;
       });
+
+      console.log("🔍 [NFT CHECK] Upcoming slots:", upcomingSlots.length);
 
       setNftCount(upcomingSlots.length);
 
@@ -302,9 +316,9 @@ export default function StreamPage() {
               ) : (
                 <>
                   <div className="bg-red-900/30 border border-red-600 rounded-lg p-4 text-center">
-                    <h3 className="text-red-400 font-bold mb-2">❌ NO TIME SLOTS FOUND</h3>
+                    <h3 className="text-red-400 font-bold mb-2">❌ NO UPCOMING TIME SLOTS</h3>
                     <p className="text-gray-300 text-sm">
-                      You have {nftCount} upcoming time slots. You must mint NFTs before streaming.
+                      You have {nftCount} upcoming time slots. Mint new slots to continue streaming.
                     </p>
                   </div>
 
@@ -388,47 +402,61 @@ export default function StreamPage() {
   return (
     <TokenContext.Provider value={authToken}>
       <LiveKitRoom serverUrl={serverUrl} token={roomToken}>
-        {/* Your address at the very top */}
-        <div className="fixed top-0 left-0 right-0 z-50 bg-black/90 border-b border-gray-700 px-4 py-2">
-          <div className="text-yellow-400 text-xs font-semibold">Your Address:</div>
-          <div className="text-white text-xs font-mono mt-1">
-            {walletAddress?.slice(0, 12)}...{walletAddress?.slice(-8)}
+        <div className="w-full h-screen flex">
+          {/* Main streaming area */}
+          <div className="flex-1 relative overflow-hidden">
+            {/* Your address at the very top */}
+            <div className="absolute top-0 left-0 right-0 z-50 bg-black/90 border-b border-gray-700 px-4 py-2">
+              <div className="text-yellow-400 text-xs font-semibold">Your Address:</div>
+              <div className="text-white text-xs font-mono mt-1">
+                {walletAddress?.slice(0, 12)}...{walletAddress?.slice(-8)}
+              </div>
+            </div>
+
+            {/* Instructions overlay below address bar */}
+            <div className="mt-16">
+              <InstructionsOverlay
+                instructions={currentInstructions}
+                winner={currentWinner}
+                slotEndTime={slotEndTime}
+                currentTime={currentTime}
+              />
+            </div>
+
+            <StreamingContent
+              roomName={roomName}
+              isStreaming={isStreaming}
+              setIsStreaming={setIsStreaming}
+              streamingStarted={streamingStarted}
+              walletAddress={walletAddress}
+              account={account}
+              signAndExecuteTransaction={signAndExecuteTransaction}
+              client={client}
+            />
+
+            {roomName && (
+              <VLMMonitor
+                roomName={roomName}
+                mainTaskPrompt={currentInstructions || "Monitor the stream and describe what you see"}
+                chunkTimeMinutes={1}
+              />
+            )}
+
+            {/* Debug Overlay */}
+            <DebugOverlay
+              roomName={roomName}
+              currentInstructions={currentInstructions}
+              currentWinner={currentWinner}
+              slotEndTime={slotEndTime}
+              isStreaming={isStreaming}
+            />
           </div>
+
+          {/* NFT Auction Sidebar */}
+          {walletAddress && (
+            <NFTAuctionSidebar streamerAddress={walletAddress} />
+          )}
         </div>
-
-        {/* Instructions overlay below address bar */}
-        <div className="mt-16">
-          <InstructionsOverlay
-            instructions={currentInstructions}
-            winner={currentWinner}
-            slotEndTime={slotEndTime}
-            currentTime={currentTime}
-          />
-        </div>
-
-        <StreamingContent
-          roomName={roomName}
-          isStreaming={isStreaming}
-          setIsStreaming={setIsStreaming}
-          streamingStarted={streamingStarted}
-        />
-
-        {roomName && (
-          <VLMMonitor
-            roomName={roomName}
-            mainTaskPrompt={currentInstructions || "Monitor the stream and describe what you see"}
-            chunkTimeMinutes={1}
-          />
-        )}
-
-        {/* Debug Overlay */}
-        <DebugOverlay
-          roomName={roomName}
-          currentInstructions={currentInstructions}
-          currentWinner={currentWinner}
-          slotEndTime={slotEndTime}
-          isStreaming={isStreaming}
-        />
       </LiveKitRoom>
     </TokenContext.Provider>
   );
@@ -439,14 +467,25 @@ function StreamingContent({
   isStreaming,
   setIsStreaming,
   streamingStarted,
+  walletAddress,
+  account,
+  signAndExecuteTransaction,
+  client,
 }: {
   roomName: string;
   isStreaming: boolean;
   setIsStreaming: (value: boolean) => void;
   streamingStarted: React.MutableRefObject<boolean>;
+  walletAddress: string | null;
+  account: any;
+  signAndExecuteTransaction: any;
+  client: any;
 }) {
   const { localParticipant } = useLocalParticipant();
   const [orientation, setOrientation] = useState(0);
+  const [showTopUpModal, setShowTopUpModal] = useState(false);
+  const [topUpHours, setTopUpHours] = useState(1);
+  const [isMintingTopUp, setIsMintingTopUp] = useState(false);
 
   // Device orientation detection
   useEffect(() => {
@@ -542,6 +581,84 @@ function StreamingContent({
     }
   }, [localParticipant, streamingStarted, setIsStreaming]);
 
+  // Top-up minting function
+  const mintTopUpSlots = async () => {
+    if (!account || !walletAddress) {
+      alert("Wallet not connected");
+      return;
+    }
+
+    setIsMintingTopUp(true);
+
+    try {
+      const SLOT_DURATION_MS = 60 * 1000; // 1 minute for testing
+      const MIN_BID_DOLLARS = 1.00; // $1.00 in UI = 10,000 MIST on-chain
+      const AUCTION_DURATION_HOURS = 24;
+
+      const numSlots = (topUpHours * 60) / 1; // 1-minute slots
+
+      // Find the latest existing slot end time to avoid overlaps
+      const existingSlots = await queryTimeSlotsByOwner(client, walletAddress);
+      let startFromTime = Date.now();
+
+      if (existingSlots.length > 0) {
+        // Find the slot with the latest end time
+        const latestSlot = existingSlots.reduce((latest, slot) => {
+          const slotEnd = Number(slot.startTime) + Number(slot.durationMs);
+          const latestEnd = Number(latest.startTime) + Number(latest.durationMs);
+          return slotEnd > latestEnd ? slot : latest;
+        });
+
+        const latestEndTime = Number(latestSlot.startTime) + Number(latestSlot.durationMs);
+        startFromTime = Math.max(Date.now(), latestEndTime); // Start from whichever is later
+      }
+
+      console.log("🔄 TOP-UP MINTING:");
+      console.log("Adding", numSlots, "new slots starting from", new Date(startFromTime).toISOString());
+
+      const auctionDurationMs = AUCTION_DURATION_HOURS * 60 * 60 * 1000;
+      const minBidMist = BigInt(Math.floor(MIN_BID_DOLLARS * 10_000));
+
+      const tx = new Transaction();
+
+      for (let i = 0; i < numSlots; i++) {
+        const slotStartTime = startFromTime + (i * SLOT_DURATION_MS);
+
+        tx.moveCall({
+          target: `${PACKAGE_ID}::time_slot::create_time_slot`,
+          arguments: [
+            tx.pure.u64(slotStartTime),
+            tx.pure.u64(minBidMist),
+            tx.pure.u64(auctionDurationMs),
+            tx.object(CLOCK_OBJECT_ID),
+          ],
+        });
+      }
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: async (result: any) => {
+            console.log("✅ Top-up slots created successfully:", result);
+            console.log("✅ Transaction digest:", result.digest);
+            setShowTopUpModal(false);
+            setIsMintingTopUp(false);
+            alert(`Successfully added ${numSlots} time slots!`);
+          },
+          onError: (error: any) => {
+            console.error("Failed to create top-up slots:", error);
+            alert(`Failed to add slots: ${error.message}`);
+            setIsMintingTopUp(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error minting top-up slots:", error);
+      alert("Failed to add slots");
+      setIsMintingTopUp(false);
+    }
+  };
+
   // Calculate rotation based on orientation
   const getRotation = () => {
     // 0° = normal, 90° = landscape right, 180° = upside down, 270° = landscape left
@@ -573,7 +690,67 @@ function StreamingContent({
         <p className="text-gray-500 text-xs mt-1">
           Orientation: {orientation}°
         </p>
+
+        {/* Top-up button */}
+        <button
+          onClick={() => setShowTopUpModal(true)}
+          className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded transition duration-200"
+        >
+          + Add More Time Slots
+        </button>
       </div>
+
+      {/* Top-up modal */}
+      {showTopUpModal && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-2xl font-bold text-white mb-4">Add More Time Slots</h2>
+            <p className="text-gray-300 text-sm mb-4">
+              Add additional time slots to your stream. Each slot is 1 minute.
+            </p>
+
+            <div className="mb-4">
+              <label className="block text-gray-300 mb-2 font-semibold">
+                Hours to Add
+              </label>
+              <input
+                type="number"
+                value={topUpHours}
+                onChange={(e) => setTopUpHours(Number(e.target.value))}
+                min="1"
+                max="12"
+                className="w-full bg-gray-900 text-white border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-blue-500"
+              />
+              <p className="text-gray-500 text-sm mt-1">
+                Will create {topUpHours * 60} new time slots
+              </p>
+            </div>
+
+            <div className="bg-blue-900/30 border border-blue-600 rounded p-3 mb-4">
+              <p className="text-blue-300 text-xs">
+                <strong>Note:</strong> New slots will be added starting from now and will appear in your auction sidebar immediately after minting.
+              </p>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={mintTopUpSlots}
+                disabled={isMintingTopUp}
+                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 text-white font-bold py-3 rounded transition duration-200"
+              >
+                {isMintingTopUp ? "Minting..." : "Mint Slots"}
+              </button>
+              <button
+                onClick={() => setShowTopUpModal(false)}
+                disabled={isMintingTopUp}
+                className="flex-1 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white font-bold py-3 rounded transition duration-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

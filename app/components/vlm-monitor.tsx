@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Room, RoomEvent, Track, RemoteTrack, RemoteParticipant } from "livekit-client";
+import { Room, RoomEvent, Track, RemoteTrack, RemoteParticipant, DataPacket_Kind } from "livekit-client";
 
 interface VLMMonitorProps {
   roomName: string;
@@ -10,6 +10,12 @@ interface VLMMonitorProps {
   sampleRateSeconds?: number; // How often to capture frames (in seconds)
   samplingPrompt?: string; // Prompt for individual frame analysis
   mainTaskPrompt?: string; // Main task/goal being tracked
+}
+
+interface ChatMessage {
+  message: string;
+  timestamp: number;
+  sender: string;
 }
 
 interface VLMConfig {
@@ -59,6 +65,9 @@ export function VLMMonitor({
   const chunkStartTimeRef = useRef<number>(Date.now());
   const chunkTimerRef = useRef<NodeJS.Timeout | null>(null);
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Chat message log for winner commands
+  const chatMessagesRef = useRef<ChatMessage[]>([]);
 
   const config: VLMConfig = {
     chunkTimeMinutes,
@@ -180,6 +189,28 @@ export function VLMMonitor({
           });
         });
 
+        // Listen for data messages (chat commands from winner)
+        room.on(RoomEvent.DataReceived, (payload: Uint8Array, participant, kind) => {
+          try {
+            const decoder = new TextDecoder();
+            const message = decoder.decode(payload);
+            const data = JSON.parse(message);
+
+            if (data.type === "command-message") {
+              const chatMessage: ChatMessage = {
+                message: data.message,
+                timestamp: data.timestamp || Date.now(),
+                sender: data.sender || participant?.identity || "unknown",
+              };
+
+              chatMessagesRef.current.push(chatMessage);
+              console.log(`💬 [VLM] Logged winner command:`, chatMessage);
+            }
+          } catch (error) {
+            console.error("❌ [VLM] Error parsing data message:", error);
+          }
+        });
+
         // Process existing participants
         room.remoteParticipants.forEach((participant) => {
           participant.videoTrackPublications.forEach((publication) => {
@@ -245,13 +276,17 @@ export function VLMMonitor({
       const frameBase64 = await extractFrame(track);
       if (!frameBase64) return;
 
-      // Send to OpenRouter API with configured sampling prompt
+      // Get recent chat messages for context (last 5 messages)
+      const recentMessages = chatMessagesRef.current.slice(-5);
+
+      // Send to OpenRouter API with recent chat messages as context
       const response = await fetch("/api/vlm-worker/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           image: frameBase64,
           prompt: config.samplingPrompt,
+          recentMessages: recentMessages,
         }),
       });
 
@@ -342,6 +377,13 @@ export function VLMMonitor({
 
         console.log(`  📦 [VLM] Processing batch ${i + 1}/${numBatches} (${batchFrames.length} images)`);
 
+        // Get chat messages relevant to this batch timeframe
+        const batchStartTime = batchFrames[0].timestamp;
+        const batchEndTime = batchFrames[batchFrames.length - 1].timestamp;
+        const batchMessages = chatMessagesRef.current.filter(
+          msg => msg.timestamp >= batchStartTime && msg.timestamp <= batchEndTime
+        );
+
         // Call batch summary API
         const response = await fetch("/api/vlm-worker/batch-summary", {
           method: "POST",
@@ -353,6 +395,7 @@ export function VLMMonitor({
               frameNumber: f.frameNumber,
             })),
             mainTaskPrompt: config.mainTaskPrompt,
+            recentMessages: batchMessages,
           }),
         });
 
@@ -380,6 +423,11 @@ export function VLMMonitor({
 
       console.log(`📊 [VLM] Generating final chunk summary with ${sampleImages.length} sampled images and ${batchSummaries.length} batch summaries`);
 
+      // Get all chat messages from this chunk
+      const chunkMessages = chatMessagesRef.current.filter(
+        msg => msg.timestamp >= chunkStartTimeRef.current
+      );
+
       // Step 3: Final summary with completion detection
       const finalResponse = await fetch("/api/vlm-worker/chunk-summary", {
         method: "POST",
@@ -397,6 +445,7 @@ export function VLMMonitor({
           })),
           mainTaskPrompt: config.mainTaskPrompt,
           chunkDuration: config.chunkTimeMinutes,
+          recentMessages: chunkMessages,
         }),
       });
 

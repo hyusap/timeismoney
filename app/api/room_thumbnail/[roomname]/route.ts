@@ -20,11 +20,13 @@ export async function GET(
     );
 
     // Get room information
-    const room = await roomService.getRoom(roomName);
+    const rooms = await roomService.listRooms([roomName]);
 
-    if (!room || room.numParticipants === 0) {
+    if (!rooms || rooms.length === 0 || rooms[0].numParticipants === 0) {
       return new Response("Room not found or no participants", { status: 404 });
     }
+
+    const room = rooms[0];
 
     // Get participants in the room
     const participants = await roomService.listParticipants(roomName);

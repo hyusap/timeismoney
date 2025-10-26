@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { StreamPreview } from "./components/stream-preview";
-
-import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
+import CameraFeed from "./components/camera-feed";
+import { useCurrentAccount } from "@mysten/dapp-kit";
 
 interface ActiveRoom {
   name: string;
@@ -12,10 +12,60 @@ interface ActiveRoom {
   creationTime: number;
 }
 
+// CCTV placeholder component for empty grid slots
+function CCTVPlaceholder({ index }: { index: number }) {
+  return (
+    <div className="relative w-full h-full bg-gray-100 border-2 border-gray-300 flex items-center justify-center overflow-hidden">
+      {/* Scan line effect */}
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-gray-300/20 to-transparent animate-pulse"></div>
+
+      {/* Camera icon and text */}
+      <div className="relative z-10 flex flex-col items-center justify-center opacity-40">
+        <svg
+          className="w-16 h-16 text-gray-400 mb-2"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
+          <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zm12.553 1.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+        </svg>
+        <div className="text-gray-400 font-mono text-xs">CAM {index + 1}</div>
+        <div className="text-gray-300 font-mono text-xs mt-1">OFFLINE</div>
+      </div>
+
+      {/* Corner timestamp */}
+      <div className="absolute top-2 left-2 text-gray-400 font-mono text-xs">
+        {new Date().toLocaleString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "2-digit",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })}
+      </div>
+
+      {/* Recording indicator (inactive) */}
+      <div className="absolute top-2 right-2 flex items-center space-x-1">
+        <div className="w-2 h-2 rounded-full bg-gray-400"></div>
+        <span className="text-gray-400 font-mono text-xs">●</span>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
-  const account = useCurrentAccount();
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const account = useCurrentAccount();
+
+  // Netcam feed URLs
+  const cameraUrls = [
+    "http://190.210.250.149:91/mjpg/video.mjpg",
+    "http://158.58.130.148/mjpg/video.mjpg",
+    "http://181.133.80.199:89/mjpg/video.mjpg",
+    "http://109.228.134.144:81/mjpg/video.mjpg",
+    "http://88.209.215.194:8801/mjpg/video.mjpg",
+  ];
 
   const fetchActiveRooms = async () => {
     try {
@@ -25,7 +75,6 @@ export default function Home() {
 
       if (response.ok) {
         const rooms = await response.json();
-        //console.log("Fetched rooms:", rooms);
         setActiveRooms(rooms);
       } else {
         console.error("Failed to fetch rooms, status:", response.status);
@@ -44,87 +93,90 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  // Total grid slots - adjust based on screen size
+  // For a 4x3 grid = 12 slots minimum
+  const TOTAL_GRID_SLOTS = 12;
+
+  // Prepare grid items - live streams first, then placeholders
+  const gridItems = [...activeRooms];
+  const placeholdersNeeded = Math.max(0, TOTAL_GRID_SLOTS - activeRooms.length);
+  const placeholders = Array.from({ length: placeholdersNeeded }, (_, i) => i);
+
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-white mb-4">Live Streams</h1>
-          <p className="text-xl text-gray-300">
+    <div className="min-h-screen bg-black flex flex-col">
+      {/* CCTV Header Bar */}
+      <div className="bg-black border-b border-gray-700 px-4 py-2 flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <div className="text-red-600 font-mono text-sm font-bold flex items-center">
+            <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse mr-2"></div>
+            LIVE MONITORING
+          </div>
+          <div className="text-gray-300 font-mono text-xs">
             {isLoading
-              ? "Loading streams..."
-              : `${activeRooms.length} active streams`}
-          </p>
+              ? "LOADING..."
+              : `${activeRooms.length} / ${TOTAL_GRID_SLOTS} ACTIVE`}
+          </div>
+          <div className="text-gray-400 font-mono text-xs">
+            {new Date().toLocaleString("en-US", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+              hour12: false,
+            })}
+          </div>
+        </div>
+
+        <div className="flex items-center space-x-3">
           {account && (
-            <div className="text-white">
-              <p>Connected to {account.address}</p>
+            <div className="text-gray-300 font-mono text-xs">
+              {account.address.slice(0, 6)}...{account.address.slice(-4)}
             </div>
           )}
-          <ConnectButton />
+          {/* <ConnectButton /> */}
         </div>
+      </div>
 
-        {isLoading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="text-white text-xl">Loading live streams...</div>
-          </div>
-        ) : activeRooms.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="text-6xl mb-4">📺</div>
-            <h2 className="text-2xl font-bold text-white mb-4">
-              No Live Streams
-            </h2>
-            <p className="text-gray-300 mb-8">
-              Be the first to start streaming!
-            </p>
-            <Link
-              href="/stream"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
-            >
-              Start Streaming
-            </Link>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {activeRooms.map((room) => (
-              <Link
-                key={room.name}
-                href={`/view/${encodeURIComponent(room.name)}`}
-                className="group bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-all duration-200 hover:scale-105"
-              >
-                <div className="aspect-video bg-gray-700 relative">
-                  {/* Actual video preview */}
-                  <StreamPreview
-                    roomName={room.name}
-                    className="w-full h-full"
-                  />
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
+      {/* CCTV Grid - Full Screen */}
+      <div className="flex-1 grid grid-cols-4 grid-rows-3 gap-1 p-1 bg-black">
+        {/* Live streams first */}
+        {gridItems.map((room) => (
+          <Link
+            key={room.name}
+            href={`/view/${encodeURIComponent(room.name)}`}
+            className="relative w-full h-full bg-black hover:opacity-80 transition-all overflow-hidden group"
+          >
+            <StreamPreview roomName={room.name} className="w-full h-full" />
+          </Link>
+        ))}
 
-        {/* Quick actions */}
-        <div className="mt-12 text-center">
-          <div className="flex justify-center space-x-4">
-            <Link
-              href="/stream"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
-            >
-              Start Your Stream
-            </Link>
-            <Link
-              href="/viewer"
-              className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-md font-medium transition duration-200"
-            >
-              Browse All Streams
-            </Link>
-            <Link
-              href="/auctions"
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
-            >
-              Time Auctions
-            </Link>
+        {/* Netcam feeds */}
+        {placeholders.map((_, index) => (
+          <div key={`placeholder-${index}`} className="w-full h-full">
+            <CameraFeed
+              url={cameraUrls[index % cameraUrls.length]}
+              index={activeRooms.length + index}
+            />
           </div>
-        </div>
+        ))}
+      </div>
+
+      {/* Quick Actions Footer */}
+      <div className="bg-gray-900 border-t border-gray-700 px-4 py-2 flex items-center justify-center space-x-3">
+        <Link
+          href="/stream"
+          className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 text-xs font-mono font-bold transition"
+        >
+          START STREAM
+        </Link>
+        <Link
+          href="/auctions"
+          className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-1.5 text-xs font-mono font-bold transition"
+        >
+          TIME AUCTIONS
+        </Link>
       </div>
     </div>
   );

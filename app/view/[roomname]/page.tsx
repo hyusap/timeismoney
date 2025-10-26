@@ -5,6 +5,7 @@ import { TokenContext } from "../../components/token-context";
 import { NFTAuctionSidebar } from "../../components/nft-auction-sidebar";
 import { DebugOverlay } from "../../components/debug-overlay";
 import { LiveKitRoom } from "@livekit/components-react";
+import { useCurrentAccount } from "@mysten/dapp-kit";
 import { useState, useEffect, use } from "react";
 
 interface ViewerPageProps {
@@ -14,10 +15,13 @@ interface ViewerPageProps {
 }
 
 export default function ViewerPage({ params }: ViewerPageProps) {
+  const account = useCurrentAccount();
   const [roomName, setRoomName] = useState("");
   const [authToken, setAuthToken] = useState("");
   const [roomToken, setRoomToken] = useState("");
   const [serverUrl, setServerUrl] = useState("");
+
+  const viewerAddress = account?.address || null;
 
   // Unwrap the params Promise
   const resolvedParams = use(params);
@@ -94,7 +98,7 @@ export default function ViewerPage({ params }: ViewerPageProps) {
         <div className="w-full h-screen flex">
           {/* Main video area */}
           <div className="flex-1 relative">
-            <StreamPlayer />
+            <StreamPlayer viewerAddress={viewerAddress} />
           </div>
 
           {/* NFT Auction Sidebar */}

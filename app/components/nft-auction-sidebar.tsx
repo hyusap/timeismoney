@@ -21,13 +21,31 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
   const [isBidding, setIsBidding] = useState(false);
   const [isSettingInstructions, setIsSettingInstructions] = useState(false);
   const [isFinalizingAuction, setIsFinalizingAuction] = useState(false);
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   const fetchTimeSlots = async () => {
     try {
       const slots = await queryTimeSlotsByOwner(client, streamerAddress);
       // Sort by start time
       slots.sort((a, b) => Number(a.startTime - b.startTime));
-      setTimeSlots(slots);
+
+      const now = Date.now();
+
+      // Filter: Keep only upcoming/active slots + last 5 completed
+      const upcoming = slots.filter(slot => {
+        const endTime = Number(slot.startTime) + Number(slot.durationMs);
+        return endTime > now;
+      });
+
+      const completed = slots.filter(slot => {
+        const endTime = Number(slot.startTime) + Number(slot.durationMs);
+        return endTime <= now;
+      });
+
+      const recentCompleted = completed.slice(-5);
+      const filtered = [...recentCompleted, ...upcoming];
+
+      setTimeSlots(filtered);
     } catch (error) {
       console.error("Failed to fetch time slots:", error);
     } finally {
@@ -40,6 +58,14 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
     const interval = setInterval(fetchTimeSlots, 15000); // Refresh every 15s
     return () => clearInterval(interval);
   }, [streamerAddress]);
+
+  // Update clock every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const getSlotStatus = (slot: TimeSlotInfo) => {
     const now = Date.now();
@@ -220,7 +246,17 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
   return (
     <div className="w-80 bg-gray-900 border-l border-gray-800 flex flex-col max-h-screen">
       <div className="p-4 border-b border-gray-800">
-        <h2 className="text-xl font-bold text-red-500 mb-1">TIME AUCTIONS</h2>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-xl font-bold text-red-500">TIME AUCTIONS</h2>
+          <div className="text-right">
+            <div className="text-white text-sm font-mono font-bold">
+              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+            </div>
+            <div className="text-gray-500 text-xs">
+              {currentTime.toLocaleDateString([], { month: 'short', day: 'numeric' })}
+            </div>
+          </div>
+        </div>
         <p className="text-gray-400 text-xs">Bid on {streamerAddress.slice(0, 8)}...'s time</p>
       </div>
 

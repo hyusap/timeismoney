@@ -20,6 +20,7 @@ export interface TimeSlotInfo {
   minBid: bigint;
   auctionEnd: bigint;
   instructions: Uint8Array | null;
+  finalized: boolean;
   claimed: boolean;
 }
 
@@ -208,19 +209,34 @@ export async function getTimeSlotInfo(
 
     const fields = object.data.content.fields as any;
 
+    // Debug logging for current_bidder parsing
+    if (fields.current_bid && BigInt(fields.current_bid) > 0n) {
+      console.log('Slot with bid - RAW fields:', fields);
+    }
+
+    // Parse current_bidder - Sui represents Option<address> as a direct string when Some, or empty when None
+    const currentBidder = typeof fields.current_bidder === 'string' && fields.current_bidder.length > 0
+      ? fields.current_bidder
+      : null;
+
+    if (fields.current_bid && BigInt(fields.current_bid) > 0n) {
+      console.log('Parsed currentBidder:', currentBidder, 'from raw:', fields.current_bidder);
+    }
+
     return {
       objectId: slotId,
       startTime: BigInt(fields.start_time),
       durationMs: BigInt(fields.duration_ms),
       timeOwner: fields.time_owner,
-      currentBidder: fields.current_bidder?.vec?.[0] || null,
+      currentBidder,
       currentBid: BigInt(fields.current_bid),
       minBid: BigInt(fields.min_bid),
       auctionEnd: BigInt(fields.auction_end),
       instructions: fields.instructions?.vec?.[0]
         ? new Uint8Array(fields.instructions.vec[0])
         : null,
-      claimed: fields.claimed,
+      finalized: fields.finalized ?? false,
+      claimed: fields.claimed ?? false,
     };
   } catch (error) {
     console.error('Error fetching time slot:', error);

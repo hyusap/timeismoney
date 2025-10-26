@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { queryTimeSlotsByOwner, TimeSlotInfo, mistToDollars, placeBidTx, setInstructionsTx } from "@/lib/sui/time-auction";
+import { queryTimeSlotsByOwner, TimeSlotInfo, mistToDollars, placeBidTx, setInstructionsTx, endAuctionTx } from "@/lib/sui/time-auction";
 
 interface NFTAuctionSidebarProps {
   streamerAddress: string;
@@ -20,6 +20,7 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
   const [instructions, setInstructions] = useState("");
   const [isBidding, setIsBidding] = useState(false);
   const [isSettingInstructions, setIsSettingInstructions] = useState(false);
+  const [isFinalizingAuction, setIsFinalizingAuction] = useState(false);
 
   const fetchTimeSlots = async () => {
     try {
@@ -173,6 +174,41 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
     return isWinner(slot) && now >= auctionEnd;
   };
 
+  const handleFinalizeAuction = async (slot: TimeSlotInfo) => {
+    if (!account) {
+      alert("Please connect your wallet");
+      return;
+    }
+
+    setIsFinalizingAuction(true);
+
+    try {
+      const tx = endAuctionTx(slot.objectId);
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: async () => {
+            alert("Auction finalized successfully!");
+            // Wait for blockchain to update before refetching
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            await fetchTimeSlots();
+            setIsFinalizingAuction(false);
+          },
+          onError: (error) => {
+            console.error("Failed to finalize auction:", error);
+            alert(`Failed to finalize auction: ${error.message}`);
+            setIsFinalizingAuction(false);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error finalizing auction:", error);
+      alert("Failed to finalize auction");
+      setIsFinalizingAuction(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="w-80 bg-gray-900 border-l border-gray-800 p-4">
@@ -198,6 +234,7 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
             const status = getSlotStatus(slot);
             const statusColor = getStatusColor(status);
             const winner = isWinner(slot);
+            const biddingOpen = status === "BIDDING OPEN";
 
             return (
               <div
@@ -212,7 +249,7 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
                   </span>
                   {winner && (
                     <span className="text-xs font-bold px-2 py-1 rounded bg-green-600 text-white">
-                      YOU WON
+                      {biddingOpen ? "WINNING" : "YOU WON"}
                     </span>
                   )}
                 </div>
@@ -244,6 +281,22 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
                     PLACE BID
                   </button>
                 )}
+
+                {(() => {
+                  const now = Date.now();
+                  const auctionEnded = now >= Number(slot.auctionEnd);
+                  const showButton = auctionEnded && account && slot.currentBidder && !slot.finalized;
+
+                  return showButton ? (
+                    <button
+                      onClick={() => handleFinalizeAuction(slot)}
+                      disabled={isFinalizingAuction}
+                      className="w-full bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-gray-300 hover:text-white text-xs font-semibold py-2 rounded transition duration-200 border border-gray-600"
+                    >
+                      {isFinalizingAuction ? "FINALIZING..." : "⚡ FINALIZE AUCTION"}
+                    </button>
+                  ) : null;
+                })()}
 
                 {canSetInstructions(slot) && (
                   <button

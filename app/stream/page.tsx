@@ -117,7 +117,7 @@ export default function StreamPage() {
 
     try {
       const SLOT_DURATION_MS = 60 * 1000; // 1 minute for testing
-      const MIN_BID_DOLLARS = 0.01; // $0.01 in UI = 100 MIST on-chain
+      const MIN_BID_DOLLARS = 1.00; // $1.00 in UI = 10,000 MIST on-chain
       const AUCTION_DURATION_HOURS = 24;
 
       const numSlots = (streamDurationHours * 60) / 1; // 1-minute slots

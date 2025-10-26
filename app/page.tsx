@@ -1,6 +1,9 @@
+"use client";
 import Link from "next/link";
+import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
 
 export default function Home() {
+  const account = useCurrentAccount();
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center">
       <div className="max-w-4xl mx-auto p-8">
@@ -11,6 +14,12 @@ export default function Home() {
           <p className="text-xl text-gray-300 mb-8">
             Stream your video or watch multiple streams simultaneously
           </p>
+          {account && (
+            <div className="text-white">
+              <p>Connected to {account.address}</p>
+            </div>
+          )}
+          <ConnectButton />
         </div>
 
         <div className="grid md:grid-cols-2 gap-8">

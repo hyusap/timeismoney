@@ -10,6 +10,7 @@ module time_auction::time_slot {
     const ENotWinner: u64 = 3;
     const ESlotNotActive: u64 = 5;
     const EAuctionNotEnded: u64 = 6;
+    const EAlreadyFinalized: u64 = 7;
 
     // ====== Constants ======
     const SLOT_DURATION_MS: u64 = 60000; // 1 minute in milliseconds (for testing)
@@ -37,6 +38,8 @@ module time_auction::time_slot {
         escrow: Balance<SUI>,
         /// Instructions from winner (set after auction ends)
         instructions: Option<vector<u8>>,
+        /// Whether the auction has been finalized (funds transferred)
+        finalized: bool,
         /// Whether the slot has been claimed by winner
         claimed: bool,
     }
@@ -107,6 +110,7 @@ module time_auction::time_slot {
             auction_end: start_time, // Auction ends when slot starts
             escrow: balance::zero(),
             instructions: option::none(),
+            finalized: false,
             claimed: false,
         };
 
@@ -187,7 +191,10 @@ module time_auction::time_slot {
         assert!(current_time >= slot.auction_end, EAuctionNotEnded);
 
         // Check it hasn't been finalized already
-        assert!(!slot.claimed, ESlotNotActive);
+        assert!(!slot.finalized, EAlreadyFinalized);
+
+        // Mark as finalized to prevent double-spending
+        slot.finalized = true;
 
         // If there's a winner, transfer funds to time owner
         if (option::is_some(&slot.current_bidder)) {

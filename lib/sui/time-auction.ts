@@ -20,6 +20,7 @@ export interface TimeSlotInfo {
   minBid: bigint;
   auctionEnd: bigint;
   instructions: Uint8Array | null;
+  finalized: boolean;
   claimed: boolean;
 }
 
@@ -208,16 +209,18 @@ export async function getTimeSlotInfo(
 
     const fields = object.data.content.fields as any;
 
-    // Extract the bidder address
-    let currentBidder: string | null = null;
-    if (fields.current_bidder) {
-      if (fields.current_bidder.vec && fields.current_bidder.vec.length > 0) {
-        currentBidder = fields.current_bidder.vec[0];
-      } else if (typeof fields.current_bidder === 'string') {
-        currentBidder = fields.current_bidder;
-      } else if (fields.current_bidder.fields) {
-        currentBidder = fields.current_bidder.fields;
-      }
+    // Debug logging for current_bidder parsing
+    if (fields.current_bid && BigInt(fields.current_bid) > 0n) {
+      console.log('Slot with bid - RAW fields:', fields);
+    }
+
+    // Parse current_bidder - Sui represents Option<address> as a direct string when Some, or empty when None
+    const currentBidder = typeof fields.current_bidder === 'string' && fields.current_bidder.length > 0
+      ? fields.current_bidder
+      : null;
+
+    if (fields.current_bid && BigInt(fields.current_bid) > 0n) {
+      console.log('Parsed currentBidder:', currentBidder, 'from raw:', fields.current_bidder);
     }
 
     return {
@@ -232,7 +235,8 @@ export async function getTimeSlotInfo(
       instructions: fields.instructions?.vec?.[0]
         ? new Uint8Array(fields.instructions.vec[0])
         : null,
-      claimed: fields.claimed,
+      finalized: fields.finalized ?? false,
+      claimed: fields.claimed ?? false,
     };
   } catch (error) {
     console.error('Error fetching time slot:', error);

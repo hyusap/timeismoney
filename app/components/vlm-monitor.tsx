@@ -5,6 +5,7 @@ import { Room, RoomEvent, Track, RemoteTrack, RemoteParticipant, DataPacket_Kind
 
 interface VLMMonitorProps {
   roomName: string;
+  walletAddress?: string; // Wallet address of the streamer
   // Configuration parameters
   chunkTimeMinutes?: number; // Duration of each chunk in minutes (triggers auto-summary)
   sampleRateSeconds?: number; // How often to capture frames (in seconds)
@@ -42,6 +43,7 @@ interface BatchSummary {
 
 export function VLMMonitor({
   roomName,
+  walletAddress,
   chunkTimeMinutes = 1, // Default: 2 minutes per chunk
   sampleRateSeconds = 5, // Default: capture every 5 seconds
   samplingPrompt = "What do you see in this image? Provide a detailed concise description",
@@ -446,6 +448,8 @@ export function VLMMonitor({
           mainTaskPrompt: config.mainTaskPrompt,
           chunkDuration: config.chunkTimeMinutes,
           recentMessages: chunkMessages,
+          walletAddress: walletAddress,
+          roomName: roomName,
         }),
       });
 

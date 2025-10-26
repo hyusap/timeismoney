@@ -103,44 +103,9 @@ export default function Home() {
   const placeholders = Array.from({ length: placeholdersNeeded }, (_, i) => i);
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
-      {/* CCTV Header Bar */}
-      <div className="bg-black border-b border-gray-700 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <div className="text-red-600 font-mono text-sm font-bold flex items-center">
-            <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse mr-2"></div>
-            LIVE MONITORING
-          </div>
-          <div className="text-gray-300 font-mono text-xs">
-            {isLoading
-              ? "LOADING..."
-              : `${activeRooms.length} / ${TOTAL_GRID_SLOTS} ACTIVE`}
-          </div>
-          <div className="text-gray-400 font-mono text-xs">
-            {new Date().toLocaleString("en-US", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-              hour12: false,
-            })}
-          </div>
-        </div>
-
-        <div className="flex items-center space-x-3">
-          {account && (
-            <div className="text-gray-300 font-mono text-xs">
-              {account.address.slice(0, 6)}...{account.address.slice(-4)}
-            </div>
-          )}
-          {/* <ConnectButton /> */}
-        </div>
-      </div>
-
+    <div className="h-screen bg-black flex flex-col overflow-hidden">
       {/* CCTV Grid - Full Screen */}
-      <div className="flex-1 grid grid-cols-4 grid-rows-3 gap-1 p-1 bg-black">
+      <div className="flex-1 grid grid-cols-4 grid-rows-3 gap-1 p-1 bg-black overflow-hidden">
         {/* Live streams first */}
         {gridItems.map((room) => (
           <Link
@@ -164,20 +129,6 @@ export default function Home() {
       </div>
 
       {/* Quick Actions Footer */}
-      <div className="bg-gray-900 border-t border-gray-700 px-4 py-2 flex items-center justify-center space-x-3">
-        <Link
-          href="/stream"
-          className="bg-red-600 hover:bg-red-700 text-white px-4 py-1.5 text-xs font-mono font-bold transition"
-        >
-          START STREAM
-        </Link>
-        <Link
-          href="/auctions"
-          className="bg-gray-700 hover:bg-gray-800 text-white px-4 py-1.5 text-xs font-mono font-bold transition"
-        >
-          TIME AUCTIONS
-        </Link>
-      </div>
     </div>
   );
 }

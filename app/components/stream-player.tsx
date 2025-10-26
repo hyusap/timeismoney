@@ -70,8 +70,8 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
     // Check immediately
     checkSlotOwnership();
 
-    // Re-check every 15 seconds
-    const interval = setInterval(checkSlotOwnership, 15000);
+    // Re-check every 2 seconds
+    const interval = setInterval(checkSlotOwnership, 2000);
     return () => clearInterval(interval);
   }, [viewerAddress, roomName]);
 

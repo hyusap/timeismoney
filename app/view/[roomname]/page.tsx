@@ -3,7 +3,7 @@
 import { StreamPlayer } from "../../components/stream-player";
 import { TokenContext } from "../../components/token-context";
 import { NFTAuctionSidebar } from "../../components/nft-auction-sidebar";
-import { DebugOverlay } from "../../components/debug-overlay";
+// import { DebugOverlay } from "../../components/debug-overlay";
 import { UserHistoryModal } from "../../components/user-history-modal";
 import { LiveKitRoom } from "@livekit/components-react";
 import { useCurrentAccount } from "@mysten/dapp-kit";
@@ -131,7 +131,7 @@ export default function ViewerPage({ params }: ViewerPageProps) {
         </div>
 
         {/* Debug Overlay */}
-        <DebugOverlay roomName={roomName} />
+        {/* <DebugOverlay roomName={roomName} /> */}
 
         {/* User History Modal - searches the streamer's history */}
         <UserHistoryModal

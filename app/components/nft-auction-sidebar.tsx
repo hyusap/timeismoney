@@ -1,22 +1,38 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { queryTimeSlotsByOwner, TimeSlotInfo, mistToDollars, placeBidTx, endAuctionTx } from "@/lib/sui/time-auction";
+import {
+  useCurrentAccount,
+  useSuiClient,
+  useSignAndExecuteTransaction,
+} from "@mysten/dapp-kit";
+import {
+  queryTimeSlotsByOwner,
+  TimeSlotInfo,
+  mistToDollars,
+  placeBidTx,
+  setInstructionsTx,
+  endAuctionTx,
+} from "@/lib/sui/time-auction";
 
 interface NFTAuctionSidebarProps {
   streamerAddress: string;
   viewerMode?: boolean; // If true, always enable bidding (for viewer pages)
 }
 
-export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAuctionSidebarProps) {
+export function NFTAuctionSidebar({
+  streamerAddress,
+  viewerMode = false,
+}: NFTAuctionSidebarProps) {
   const account = useCurrentAccount();
   const client = useSuiClient();
   const { mutate: signAndExecuteTransaction } = useSignAndExecuteTransaction();
 
   // Check if current user is the streamer (time slot owner)
   // If viewerMode is true, always treat as non-streamer (viewer)
-  const isStreamer = viewerMode ? false : (account?.address.toLowerCase() === streamerAddress.toLowerCase());
+  const isStreamer = viewerMode
+    ? false
+    : account?.address.toLowerCase() === streamerAddress.toLowerCase();
 
   const [timeSlots, setTimeSlots] = useState<TimeSlotInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -33,12 +49,12 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
       const now = Date.now();
 
       // Filter: Keep only upcoming/active slots + last 5 completed
-      const upcoming = slots.filter(slot => {
+      const upcoming = slots.filter((slot) => {
         const endTime = Number(slot.startTime) + Number(slot.durationMs);
         return endTime > now;
       });
 
-      const completed = slots.filter(slot => {
+      const completed = slots.filter((slot) => {
         const endTime = Number(slot.startTime) + Number(slot.durationMs);
         return endTime <= now;
       });
@@ -129,9 +145,10 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
     // Calculate minimum required bid
     const currentBidDollars = mistToDollars(slot.currentBid);
     const minBidDollars = mistToDollars(slot.minBid);
-    const requiredBid = slot.currentBid > 0n
-      ? currentBidDollars + 0.0001 // Must be at least 1 MIST higher (0.0001 dollars)
-      : minBidDollars;
+    const requiredBid =
+      slot.currentBid > 0n
+        ? currentBidDollars + 0.0001 // Must be at least 1 MIST higher (0.0001 dollars)
+        : minBidDollars;
 
     if (bidDollars < requiredBid) {
       alert(`Bid too low! Must be at least $${requiredBid.toFixed(4)}`);
@@ -184,7 +201,7 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
           onSuccess: async () => {
             alert("Auction finalized successfully!");
             // Wait for blockchain to update before refetching
-            await new Promise(resolve => setTimeout(resolve, 2000));
+            await new Promise((resolve) => setTimeout(resolve, 2000));
             await fetchTimeSlots();
             setIsFinalizingAuction(false);
           },
@@ -225,28 +242,40 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
   }
 
   return (
-    <div className="w-80 bg-gray-900 border-l border-gray-800 flex flex-col max-h-screen">
+    <div className="w-80 bg-black  flex flex-col max-h-screen">
       <div className="p-4 border-b border-gray-800">
         <div className="flex items-center justify-between mb-2">
-          <h2 className="text-xl font-bold text-red-500">TIME AUCTIONS</h2>
-          <div className="text-right">
-            <div className="text-white text-sm font-mono font-bold">
-              {currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-            </div>
-            <div className="text-gray-500 text-xs">
-              {currentTime.toLocaleDateString([], { month: 'short', day: 'numeric' })}
-            </div>
+          <h2 className="text-4xl font-medium tracking-tight font-cormorant italic">
+            Time Auctions
+          </h2>
+        </div>
+
+        <div className="text-left">
+          <div className="text-white text-sm font-mono font-light">
+            {currentTime.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            })}
+          </div>
+          <div className="text-gray-500 text-xs">
+            {currentTime.toLocaleDateString([], {
+              month: "short",
+              day: "numeric",
+            })}
           </div>
         </div>
         <p className="text-gray-400 text-xs">
-          {isStreamer ? "Your time slots" : `Bid on ${streamerAddress.slice(0, 8)}...'s time`}
+          {isStreamer
+            ? "Your time slots"
+            : `Bid on ${streamerAddress.slice(0, 8)}...'s time`}
         </p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {timeSlots.length === 0 ? (
-          <div className="text-center text-gray-500 py-8">
-            No time slots available
+          <div className="text-lg text-center font-cormorant font-medium italic tracking-tight text-gray-500 py-8">
+            No time slots created
           </div>
         ) : (
           timeSlots.map((slot) => {
@@ -269,7 +298,9 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
                     </div>
                     <div className="text-gray-400 text-xs">15 minutes</div>
                   </div>
-                  <span className={`text-xs font-bold px-2 py-1 rounded ${statusColor}`}>
+                  <span
+                    className={`text-xs font-bold px-2 py-1 rounded ${statusColor}`}
+                  >
                     {status}
                   </span>
                 </div>
@@ -278,7 +309,9 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
                 {slot.currentBidder ? (
                   <div className="bg-gradient-to-r from-yellow-900/50 to-yellow-800/50 border-2 border-yellow-500 rounded-lg p-4 mb-3">
                     <div className="flex items-center justify-between mb-2">
-                      <div className="text-yellow-400 font-bold text-sm">🏆 HIGHEST BIDDER</div>
+                      <div className="text-yellow-400 font-bold text-sm">
+                        🏆 HIGHEST BIDDER
+                      </div>
                       {winner && (
                         <span className="text-xs font-bold px-2 py-1 rounded bg-green-600 text-white">
                           YOU
@@ -286,12 +319,15 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
                       )}
                     </div>
                     <div className="text-white font-mono text-base font-bold bg-black/40 px-3 py-2 rounded border border-yellow-600/50">
-                      {slot.currentBidder.slice(0, 12)}...{slot.currentBidder.slice(-8)}
+                      {slot.currentBidder.slice(0, 12)}...
+                      {slot.currentBidder.slice(-8)}
                     </div>
                   </div>
                 ) : (
                   <div className="bg-gray-900/50 border border-gray-700 rounded-lg p-3 mb-3">
-                    <div className="text-gray-500 text-sm font-semibold">No bids yet</div>
+                    <div className="text-gray-500 text-sm font-semibold">
+                      No bids yet
+                    </div>
                   </div>
                 )}
 
@@ -301,7 +337,7 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
                   <div className="text-green-400 font-bold">
                     {slot.currentBid > 0n
                       ? `$${mistToDollars(slot.currentBid).toFixed(2)}`
-                      : `Min: $${mistToDollars(slot.minBid).toFixed(2)}`}
+                      : `$${mistToDollars(slot.minBid).toFixed(2)}`}
                   </div>
                 </div>
 
@@ -319,7 +355,11 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
                 {(() => {
                   const now = Date.now();
                   const auctionEnded = now >= Number(slot.auctionEnd);
-                  const showButton = auctionEnded && account && slot.currentBidder && !slot.finalized;
+                  const showButton =
+                    auctionEnded &&
+                    account &&
+                    slot.currentBidder &&
+                    !slot.finalized;
 
                   return showButton ? (
                     <button
@@ -327,7 +367,9 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
                       disabled={isFinalizingAuction}
                       className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-gray-800 text-white text-xs font-semibold py-2 rounded transition duration-200 border border-purple-500 mb-2"
                     >
-                      {isFinalizingAuction ? "FINALIZING..." : "⚡ FINALIZE AUCTION"}
+                      {isFinalizingAuction
+                        ? "FINALIZING..."
+                        : "⚡ FINALIZE AUCTION"}
                     </button>
                   ) : null;
                 })()}
@@ -338,49 +380,52 @@ export function NFTAuctionSidebar({ streamerAddress, viewerMode = false }: NFTAu
       </div>
 
       {/* Bidding Modal - Only for non-streamers */}
-      {selectedSlot && getSlotStatus(selectedSlot) === "BIDDING OPEN" && !isStreamer && (() => {
-        const currentBidDollars = mistToDollars(selectedSlot.currentBid);
-        const minBidDollars = mistToDollars(selectedSlot.minBid);
-        const requiredBid = selectedSlot.currentBid > 0n
-          ? currentBidDollars + 0.0001
-          : minBidDollars;
+      {selectedSlot &&
+        getSlotStatus(selectedSlot) === "BIDDING OPEN" &&
+        !isStreamer &&
+        (() => {
+          const currentBidDollars = mistToDollars(selectedSlot.currentBid);
+          const minBidDollars = mistToDollars(selectedSlot.minBid);
+          const requiredBid =
+            selectedSlot.currentBid > 0n
+              ? currentBidDollars + 0.0001
+              : minBidDollars;
 
-        return (
-          <div className="border-t border-gray-800 p-4 bg-gray-950">
-            <h3 className="text-white font-bold mb-2">Place Bid</h3>
-            <div className="text-gray-400 text-xs mb-2">
-              Slot: {formatTime(selectedSlot.startTime)}
+          return (
+            <div className="border-t border-gray-800 p-4 bg-gray-950">
+              <h3 className="text-white font-bold mb-2">Place Bid</h3>
+              <div className="text-gray-400 text-xs mb-2">
+                Slot: {formatTime(selectedSlot.startTime)}
+              </div>
+              <div className="text-yellow-400 text-xs mb-3 font-semibold">
+                Minimum bid: ${requiredBid.toFixed(4)}
+              </div>
+              <input
+                type="number"
+                step="0.01"
+                value={bidAmount}
+                onChange={(e) => setBidAmount(e.target.value)}
+                placeholder={`Amount in $ (min: ${requiredBid.toFixed(4)})`}
+                className="w-full bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 mb-3 text-sm focus:outline-none focus:border-red-500"
+              />
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handlePlaceBid(selectedSlot)}
+                  disabled={isBidding}
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white text-sm font-bold py-2 rounded transition duration-200"
+                >
+                  {isBidding ? "Bidding..." : "Confirm Bid"}
+                </button>
+                <button
+                  onClick={() => setSelectedSlot(null)}
+                  className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold py-2 rounded transition duration-200"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            <div className="text-yellow-400 text-xs mb-3 font-semibold">
-              Minimum bid: ${requiredBid.toFixed(4)}
-            </div>
-            <input
-              type="number"
-              step="0.01"
-              value={bidAmount}
-              onChange={(e) => setBidAmount(e.target.value)}
-              placeholder={`Amount in $ (min: ${requiredBid.toFixed(4)})`}
-              className="w-full bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 mb-3 text-sm focus:outline-none focus:border-red-500"
-            />
-            <div className="flex gap-2">
-              <button
-                onClick={() => handlePlaceBid(selectedSlot)}
-                disabled={isBidding}
-                className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white text-sm font-bold py-2 rounded transition duration-200"
-              >
-                {isBidding ? "Bidding..." : "Confirm Bid"}
-              </button>
-              <button
-                onClick={() => setSelectedSlot(null)}
-                className="flex-1 bg-gray-700 hover:bg-gray-600 text-white text-sm font-bold py-2 rounded transition duration-200"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        );
-      })()}
-
+          );
+        })()}
     </div>
   );
 }

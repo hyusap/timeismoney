@@ -21,8 +21,6 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
   const participants = useParticipants();
 
   const remoteVideoTracks = useTracks([Track.Source.Camera]);
-  console.log("remoteVideoTracks", remoteVideoTracks);
-
   const remoteAudioTracks = useTracks([Track.Source.Microphone]);
 
   const [chatMessage, setChatMessage] = useState("");
@@ -30,13 +28,27 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
 
   // Slot owner check state
   const [isCurrentSlotOwner, setIsCurrentSlotOwner] = useState(false);
-  const [currentSlotWinner, setCurrentSlotWinner] = useState<string | null>(null);
+  const [currentSlotWinner, setCurrentSlotWinner] = useState<string | null>(
+    null
+  );
   const [isCheckingSlot, setIsCheckingSlot] = useState(false);
+  const [time, setTime] = useState(new Date());
+
+  // Update time every second
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Check if viewer is the current slot owner
   useEffect(() => {
     if (!viewerAddress || !roomName) {
-      console.log("🎫 [Chat Access] Missing data:", { viewerAddress, roomName });
+      console.log("🎫 [Chat Access] Missing data:", {
+        viewerAddress,
+        roomName,
+      });
       return;
     }
 
@@ -52,9 +64,15 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
         console.log("🎫 [Chat Access] API Response:", {
           hasActiveSlot: data.hasActiveSlot,
           winner: data.winner,
-          slotStartTime: data.slotStartTime ? new Date(data.slotStartTime).toLocaleTimeString() : null,
-          slotEndTime: data.slotEndTime ? new Date(data.slotEndTime).toLocaleTimeString() : null,
-          currentTime: data.currentTime ? new Date(data.currentTime).toLocaleTimeString() : null,
+          slotStartTime: data.slotStartTime
+            ? new Date(data.slotStartTime).toLocaleTimeString()
+            : null,
+          slotEndTime: data.slotEndTime
+            ? new Date(data.slotEndTime).toLocaleTimeString()
+            : null,
+          currentTime: data.currentTime
+            ? new Date(data.currentTime).toLocaleTimeString()
+            : null,
         });
 
         console.log("🎫 [Chat Access] Comparison:", {
@@ -66,17 +84,23 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
         });
 
         if (data.hasActiveSlot && data.winner) {
-          const isOwner = data.winner.toLowerCase() === viewerAddress.toLowerCase();
+          const isOwner =
+            data.winner.toLowerCase() === viewerAddress.toLowerCase();
           setCurrentSlotWinner(data.winner);
           setIsCurrentSlotOwner(isOwner);
           console.log("🎫 [Chat Access] Setting isCurrentSlotOwner:", isOwner);
         } else {
           setCurrentSlotWinner(null);
           setIsCurrentSlotOwner(false);
-          console.log("🎫 [Chat Access] No active slot or winner - disabling chat");
+          console.log(
+            "🎫 [Chat Access] No active slot or winner - disabling chat"
+          );
         }
       } catch (error) {
-        console.error("❌ [Chat Access] Failed to check slot ownership:", error);
+        console.error(
+          "❌ [Chat Access] Failed to check slot ownership:",
+          error
+        );
         setIsCurrentSlotOwner(false);
       } finally {
         setIsCheckingSlot(false);
@@ -94,8 +118,6 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
   const handleSendMessage = async () => {
     if (!chatMessage.trim() || !localParticipant) return;
 
-    console.log("💬 [Command] Sending command:", chatMessage);
-
     try {
       // Use room's data channel to send message to streamer
       const encoder = new TextEncoder();
@@ -109,7 +131,6 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
 
       // Send to the room
       localParticipant.publishData(data, { reliable: true });
-      console.log("✅ [Command] Data sent via LiveKit");
 
       // Trigger TTS via Deepgram for audio announcement
       fetch("/api/tts", {
@@ -117,18 +138,15 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: chatMessage }),
       })
-        .then(async res => {
+        .then(async (res) => {
           if (res.ok) {
-            console.log("✅ [Command] TTS request successful, playing audio...");
             const audioBlob = await res.blob();
             const audioUrl = URL.createObjectURL(audioBlob);
             const audio = new Audio(audioUrl);
-            audio.play().catch(err => console.error("❌ [Command] Audio playback error:", err));
-          } else {
-            console.error("❌ [Command] TTS request failed:", res.status);
+            audio.play();
           }
         })
-        .catch(err => console.error("❌ [Command] TTS error:", err));
+        .catch((err) => {});
 
       setChatMessage("");
     } catch (error) {
@@ -152,12 +170,97 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
           {remoteVideoTracks.map((t) => (
             <div
               key={t.participant.identity}
-              className="w-full h-full flex items-center justify-center"
+              className="relative w-full h-full flex items-center justify-center"
             >
               <VideoTrack
                 trackRef={t}
                 className="h-full w-auto object-contain"
+                style={{
+                  filter: "contrast(1.15) brightness(0.9) saturate(0.9)",
+                }}
               />
+
+              {/* Scan line effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.2) 0px, transparent 1px, transparent 2px, rgba(0, 0, 0, 0.2) 3px)",
+                  animation: "scan 10s linear infinite",
+                }}
+              />
+
+              {/* Vignette effect */}
+              <div
+                className="absolute inset-0 pointer-events-none"
+                style={{
+                  background:
+                    "radial-gradient(ellipse at center, transparent 20%, rgba(0,0,0,0.5) 100%)",
+                }}
+              />
+
+              {/* Noise overlay */}
+              <div
+                className="absolute inset-0 pointer-events-none opacity-15"
+                style={{
+                  backgroundImage:
+                    "url(\"data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E\")",
+                  mixBlendMode: "overlay",
+                }}
+              />
+
+              {/* Chromatic aberration effect (subtle) */}
+              <div
+                className="absolute inset-0 pointer-events-none opacity-20"
+                style={{
+                  background:
+                    "linear-gradient(90deg, rgba(255,0,0,0.1) 0%, transparent 2%, transparent 98%, rgba(0,0,255,0.1) 100%)",
+                }}
+              />
+
+              {/* CCTV Overlays */}
+              {/* Top left: timestamp */}
+              <div className="absolute top-2 left-2 bg-black/70 text-white px-2 py-1 font-mono text-xs border border-white/20">
+                {time.toLocaleString("en-US", {
+                  month: "2-digit",
+                  day: "2-digit",
+                  year: "2-digit",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: false,
+                })}
+              </div>
+
+              {/* Top right: live indicator */}
+              <div className="absolute top-2 right-2 flex items-center space-x-1 bg-black/70 px-2 py-1 border border-red-600/30">
+                <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                <span className="text-red-600 font-mono text-xs font-bold">
+                  REC
+                </span>
+              </div>
+
+              {/* Bottom left: camera label */}
+              <div className="absolute bottom-2 left-2 bg-black/70 text-white px-2 py-1 font-mono text-xs border border-white/20">
+                {t.participant.identity.slice(0, 12).toUpperCase()}
+              </div>
+
+              {/* Corner markers (security cam style) */}
+              <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600/40"></div>
+              <div className="absolute top-0 right-0 w-8 h-8 border-t-2 border-r-2 border-red-600/40"></div>
+              <div className="absolute bottom-0 left-0 w-8 h-8 border-b-2 border-l-2 border-red-600/40"></div>
+              <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600/40"></div>
+
+              <style jsx>{`
+                @keyframes scan {
+                  0% {
+                    transform: translateY(-100%);
+                  }
+                  100% {
+                    transform: translateY(100%);
+                  }
+                }
+              `}</style>
             </div>
           ))}
         </div>
@@ -181,20 +284,20 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
       {/* Command Chat Box - Bottom of screen */}
       <div className="absolute bottom-4 left-4 right-4 z-50">
         <div className="max-w-md">
-          {console.log("💬 [Chat Bar] Rendering - isCurrentSlotOwner:", isCurrentSlotOwner)}
-
           {/* Debug indicator */}
           <div className="bg-blue-900/90 border border-blue-500 rounded-t px-3 py-1 mb-1">
             <p className="text-blue-300 text-xs font-mono">
-              DEBUG: isCurrentSlotOwner={String(isCurrentSlotOwner)} |
-              winner={currentSlotWinner?.slice(0, 8) || 'none'} |
-              viewer={viewerAddress?.slice(0, 8) || 'none'}
+              DEBUG: isCurrentSlotOwner={String(isCurrentSlotOwner)} | winner=
+              {currentSlotWinner?.slice(0, 8) || "none"} | viewer=
+              {viewerAddress?.slice(0, 8) || "none"}
             </p>
           </div>
 
           {isCurrentSlotOwner && (
             <div className="bg-green-900/90 border border-green-500 rounded-t px-3 py-1">
-              <p className="text-green-400 text-xs font-bold">⚡ You control this time slot</p>
+              <p className="text-green-400 text-xs font-bold">
+                ⚡ You control this time slot
+              </p>
             </div>
           )}
           <div className="flex gap-2">
@@ -204,7 +307,11 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
               value={chatMessage}
               onChange={(e) => setChatMessage(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={isCurrentSlotOwner ? "Send a command..." : "You need to win a slot to send commands"}
+              placeholder={
+                isCurrentSlotOwner
+                  ? "Send a command..."
+                  : "You need to win a slot to send commands"
+              }
               disabled={!isCurrentSlotOwner}
               className={`flex-1 px-4 py-3 rounded text-white placeholder-gray-400 focus:outline-none focus:ring-2 ${
                 isCurrentSlotOwner
@@ -221,12 +328,6 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
                   : "bg-gray-700 text-gray-500 cursor-not-allowed"
               }`}
             >
-              {console.log("🔘 [Send Button] State:", {
-                isCurrentSlotOwner,
-                hasMessage: chatMessage.trim().length > 0,
-                isDisabled: !isCurrentSlotOwner || !chatMessage.trim(),
-                disabledReason: !isCurrentSlotOwner ? "Not slot owner" : !chatMessage.trim() ? "Empty message" : "Enabled"
-              })}
               Send
             </button>
           </div>

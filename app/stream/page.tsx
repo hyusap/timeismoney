@@ -8,8 +8,17 @@ import { VLMMonitor } from "../components/vlm-monitor";
 import { InstructionsOverlay } from "../components/instructions-overlay";
 import { DebugOverlay } from "../components/debug-overlay";
 import { NFTAuctionSidebar } from "../components/nft-auction-sidebar";
-import { ConnectButton, useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { queryTimeSlotsByOwner, PACKAGE_ID, CLOCK_OBJECT_ID } from "@/lib/sui/time-auction";
+import {
+  ConnectButton,
+  useCurrentAccount,
+  useSuiClient,
+  useSignAndExecuteTransaction,
+} from "@mysten/dapp-kit";
+import {
+  queryTimeSlotsByOwner,
+  PACKAGE_ID,
+  CLOCK_OBJECT_ID,
+} from "@/lib/sui/time-auction";
 import { Transaction } from "@mysten/sui/transactions";
 
 interface TimeSlotMonitorResponse {
@@ -40,7 +49,9 @@ export default function StreamPage() {
   const [streamDurationHours, setStreamDurationHours] = useState(4);
 
   // Time slot monitoring
-  const [currentInstructions, setCurrentInstructions] = useState<string | null>(null);
+  const [currentInstructions, setCurrentInstructions] = useState<string | null>(
+    null
+  );
   const [currentWinner, setCurrentWinner] = useState<string | null>(null);
   const [slotEndTime, setSlotEndTime] = useState<number | null>(null);
   const [currentTime, setCurrentTime] = useState(Date.now());
@@ -64,13 +75,17 @@ export default function StreamPage() {
       console.log("🔍 [NFT CHECK] Total slots:", slots.length);
       console.log("🔍 [NFT CHECK] Current time:", new Date(now).toISOString());
 
-      const upcomingSlots = slots.filter(slot => {
+      const upcomingSlots = slots.filter((slot) => {
         const startTime = Number(slot.startTime);
         const endTime = startTime + Number(slot.durationMs);
         const hasStarted = startTime <= now;
         const hasEnded = endTime <= now;
 
-        console.log(`  Slot: ${new Date(startTime).toISOString()} - ${new Date(endTime).toISOString()} | Started: ${hasStarted} | Ended: ${hasEnded}`);
+        console.log(
+          `  Slot: ${new Date(startTime).toISOString()} - ${new Date(
+            endTime
+          ).toISOString()} | Started: ${hasStarted} | Ended: ${hasEnded}`
+        );
 
         // Only count slots that haven't started yet (truly upcoming)
         return startTime > now;
@@ -115,8 +130,10 @@ export default function StreamPage() {
       if (i < MAX_RETRIES - 1) {
         // Exponential backoff: 1s, 2s, 4s, 8s, then cap at 8s
         const delay = Math.min(INITIAL_DELAY * Math.pow(2, i), 8000);
-        console.log(`⏳ NFTs not found yet, waiting ${delay}ms before retry...`);
-        await new Promise(resolve => setTimeout(resolve, delay));
+        console.log(
+          `⏳ NFTs not found yet, waiting ${delay}ms before retry...`
+        );
+        await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
 
@@ -127,7 +144,7 @@ export default function StreamPage() {
   // Check for NFTs when wallet connects and auto-start stream if found
   useEffect(() => {
     if (isConnected && walletAddress) {
-      checkForNFTs().then(found => {
+      checkForNFTs().then((found) => {
         if (found) {
           // Auto-start stream if NFTs are found
           connectToRoom();
@@ -149,7 +166,7 @@ export default function StreamPage() {
 
     try {
       const SLOT_DURATION_MS = 60 * 1000; // 1 minute for testing
-      const MIN_BID_DOLLARS = 1.00; // $1.00 in UI = 10,000 MIST on-chain
+      const MIN_BID_DOLLARS = 1.0; // $1.00 in UI = 10,000 MIST on-chain
       const AUCTION_DURATION_HOURS = 24;
 
       const numSlots = (streamDurationHours * 60) / 1; // 1-minute slots
@@ -167,11 +184,14 @@ export default function StreamPage() {
 
       for (let i = 0; i < numSlots; i++) {
         // Start immediately, no offset
-        const slotStartTime = now + (i * SLOT_DURATION_MS);
+        const slotStartTime = now + i * SLOT_DURATION_MS;
 
         if (i === 0) {
           console.log("First slot start time:", slotStartTime);
-          console.log("First slot formatted:", new Date(slotStartTime).toISOString());
+          console.log(
+            "First slot formatted:",
+            new Date(slotStartTime).toISOString()
+          );
         }
 
         tx.moveCall({
@@ -252,7 +272,9 @@ export default function StreamPage() {
 
     const fetchTimeSlot = async () => {
       try {
-        const res = await fetch(`/api/time-slot-monitor?streamerAddress=${walletAddress}`);
+        const res = await fetch(
+          `/api/time-slot-monitor?streamerAddress=${walletAddress}`
+        );
         const data: TimeSlotMonitorResponse = await res.json();
 
         if (data.hasActiveSlot) {
@@ -281,13 +303,13 @@ export default function StreamPage() {
 
   if (!authToken || !roomToken) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
-        <div className="bg-gray-900 border-2 border-red-600 rounded-lg p-8 max-w-2xl w-full">
-          <h1 className="text-4xl font-bold text-red-500 mb-2 text-center">
-            START STREAMING
+      <div className=" bg-black flex items-center justify-center p-6">
+        <div className=" max-w-2xl w-full">
+          <h1 className="text-4xl font-medium tracking-tight font-cormorant italic text-red-500 mb-2 text-center">
+            Start Streaming
           </h1>
-          <p className="text-gray-400 text-center mb-8 italic">
-            "Sell your time, live on camera"
+          <p className="text-gray-400 text-center mb-8 font-cormorant font-medium italic tracking-tight">
+            &quot;Sell your time, live on camera&quot;
           </p>
 
           {!isConnected ? (
@@ -316,16 +338,22 @@ export default function StreamPage() {
               ) : (
                 <>
                   <div className="bg-red-900/30 border border-red-600 rounded-lg p-4 text-center">
-                    <h3 className="text-red-400 font-bold mb-2">❌ NO UPCOMING TIME SLOTS</h3>
+                    <h3 className="text-red-400 font-bold mb-2">
+                      ❌ NO UPCOMING TIME SLOTS
+                    </h3>
                     <p className="text-gray-300 text-sm">
-                      You have {nftCount} upcoming time slots. Mint new slots to continue streaming.
+                      You have {nftCount} upcoming time slots. Mint new slots to
+                      continue streaming.
                     </p>
                   </div>
 
                   <div className="bg-yellow-900/30 border border-yellow-600 rounded-lg p-4">
-                    <h3 className="text-yellow-400 font-bold mb-2">⚠️ STEP 1: MINT TIME SLOTS</h3>
+                    <h3 className="text-yellow-400 font-bold mb-2">
+                      ⚠️ STEP 1: MINT TIME SLOTS
+                    </h3>
                     <p className="text-gray-300 text-sm mb-4">
-                      Each slot is 15 minutes. Viewers will bid on your time, and the highest bidder controls what you do.
+                      Each slot is 15 minutes. Viewers will bid on your time,
+                      and the highest bidder controls what you do.
                     </p>
 
                     <div className="mb-4">
@@ -335,20 +363,24 @@ export default function StreamPage() {
                       <input
                         type="number"
                         value={streamDurationHours}
-                        onChange={(e) => setStreamDurationHours(Number(e.target.value))}
+                        onChange={(e) =>
+                          setStreamDurationHours(Number(e.target.value))
+                        }
                         min="1"
                         max="12"
                         className="w-full bg-gray-800 text-white border border-gray-700 rounded px-4 py-3 focus:outline-none focus:border-red-500"
                       />
                       <p className="text-gray-500 text-sm mt-1">
-                        Will create {streamDurationHours * 60} time slots (1 min each)
+                        Will create {streamDurationHours * 60} time slots (1 min
+                        each)
                       </p>
                     </div>
 
                     <div className="bg-red-900/30 border border-red-600 rounded p-3 mb-4">
                       <p className="text-red-300 text-xs">
-                        <strong>Warning:</strong> Once minted, these slots will be auctioned immediately.
-                        Winners can watch you and give you instructions during their time slot.
+                        <strong>Warning:</strong> Once minted, these slots will
+                        be auctioned immediately. Winners can watch you and give
+                        you instructions during their time slot.
                       </p>
                     </div>
 
@@ -357,7 +389,9 @@ export default function StreamPage() {
                       disabled={isMinting}
                       className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-700 text-white font-bold py-3 rounded-lg transition duration-200 mb-3"
                     >
-                      {isMinting ? "Minting NFTs & Starting Stream..." : "MINT NFTs & START STREAM"}
+                      {isMinting
+                        ? "Minting NFTs & Starting Stream..."
+                        : "MINT NFTs & START STREAM"}
                     </button>
 
                     <button
@@ -365,7 +399,9 @@ export default function StreamPage() {
                       disabled={isCheckingNFTs}
                       className="w-full bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white text-sm font-medium py-2 rounded transition duration-200"
                     >
-                      {isCheckingNFTs ? "Checking..." : "🔄 Already Minted? Check Again"}
+                      {isCheckingNFTs
+                        ? "Checking..."
+                        : "🔄 Already Minted? Check Again"}
                     </button>
                   </div>
                 </>
@@ -375,7 +411,9 @@ export default function StreamPage() {
             <div className="space-y-6">
               <div className="text-center">
                 <div className="bg-green-900/30 border border-green-600 rounded-lg p-4 mb-6">
-                  <p className="text-green-400 font-bold text-lg">✅ {nftCount} TIME SLOTS FOUND</p>
+                  <p className="text-green-400 font-bold text-lg">
+                    ✅ {nftCount} TIME SLOTS FOUND
+                  </p>
                   <p className="text-gray-300 text-sm mt-1">
                     Your time slots are ready for auction
                   </p>
@@ -407,7 +445,9 @@ export default function StreamPage() {
           <div className="flex-1 relative overflow-hidden">
             {/* Your address at the very top */}
             <div className="absolute top-0 left-0 right-0 z-50 bg-black/90 border-b border-gray-700 px-4 py-2">
-              <div className="text-yellow-400 text-xs font-semibold">Your Address:</div>
+              <div className="text-yellow-400 text-xs font-semibold">
+                Your Address:
+              </div>
               <div className="text-white text-xs font-mono mt-1">
                 {walletAddress?.slice(0, 12)}...{walletAddress?.slice(-8)}
               </div>
@@ -437,7 +477,10 @@ export default function StreamPage() {
             {roomName && (
               <VLMMonitor
                 roomName={roomName}
-                mainTaskPrompt={currentInstructions || "Monitor the stream and describe what you see"}
+                mainTaskPrompt={
+                  currentInstructions ||
+                  "Monitor the stream and describe what you see"
+                }
                 chunkTimeMinutes={1}
               />
             )}
@@ -592,7 +635,7 @@ function StreamingContent({
 
     try {
       const SLOT_DURATION_MS = 60 * 1000; // 1 minute for testing
-      const MIN_BID_DOLLARS = 1.00; // $1.00 in UI = 10,000 MIST on-chain
+      const MIN_BID_DOLLARS = 1.0; // $1.00 in UI = 10,000 MIST on-chain
       const AUCTION_DURATION_HOURS = 24;
 
       const numSlots = (topUpHours * 60) / 1; // 1-minute slots
@@ -605,16 +648,23 @@ function StreamingContent({
         // Find the slot with the latest end time
         const latestSlot = existingSlots.reduce((latest, slot) => {
           const slotEnd = Number(slot.startTime) + Number(slot.durationMs);
-          const latestEnd = Number(latest.startTime) + Number(latest.durationMs);
+          const latestEnd =
+            Number(latest.startTime) + Number(latest.durationMs);
           return slotEnd > latestEnd ? slot : latest;
         });
 
-        const latestEndTime = Number(latestSlot.startTime) + Number(latestSlot.durationMs);
+        const latestEndTime =
+          Number(latestSlot.startTime) + Number(latestSlot.durationMs);
         startFromTime = Math.max(Date.now(), latestEndTime); // Start from whichever is later
       }
 
       console.log("🔄 TOP-UP MINTING:");
-      console.log("Adding", numSlots, "new slots starting from", new Date(startFromTime).toISOString());
+      console.log(
+        "Adding",
+        numSlots,
+        "new slots starting from",
+        new Date(startFromTime).toISOString()
+      );
 
       const auctionDurationMs = AUCTION_DURATION_HOURS * 60 * 60 * 1000;
       const minBidMist = BigInt(Math.floor(MIN_BID_DOLLARS * 10_000));
@@ -622,7 +672,7 @@ function StreamingContent({
       const tx = new Transaction();
 
       for (let i = 0; i < numSlots; i++) {
-        const slotStartTime = startFromTime + (i * SLOT_DURATION_MS);
+        const slotStartTime = startFromTime + i * SLOT_DURATION_MS;
 
         tx.moveCall({
           target: `${PACKAGE_ID}::time_slot::create_time_slot`,
@@ -704,7 +754,9 @@ function StreamingContent({
       {showTopUpModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
           <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-2xl font-bold text-white mb-4">Add More Time Slots</h2>
+            <h2 className="text-2xl font-bold text-white mb-4">
+              Add More Time Slots
+            </h2>
             <p className="text-gray-300 text-sm mb-4">
               Add additional time slots to your stream. Each slot is 1 minute.
             </p>
@@ -728,7 +780,9 @@ function StreamingContent({
 
             <div className="bg-blue-900/30 border border-blue-600 rounded p-3 mb-4">
               <p className="text-blue-300 text-xs">
-                <strong>Note:</strong> New slots will be added starting from now and will appear in your auction sidebar immediately after minting.
+                <strong>Note:</strong> New slots will be added starting from now
+                and will appear in your auction sidebar immediately after
+                minting.
               </p>
             </div>
 

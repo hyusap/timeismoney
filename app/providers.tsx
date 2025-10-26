@@ -12,13 +12,14 @@ import "@mysten/dapp-kit/dist/index.css";
 const { networkConfig } = createNetworkConfig({
   localnet: { url: getFullnodeUrl("localnet") },
   mainnet: { url: getFullnodeUrl("mainnet") },
+  testnet: { url: getFullnodeUrl("testnet") },
 });
 const queryClient = new QueryClient();
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <SuiClientProvider networks={networkConfig} defaultNetwork="localnet">
+      <SuiClientProvider networks={networkConfig} defaultNetwork="testnet">
         <WalletProvider slushWallet={{ name: "Time is Money" }}>
           {children}
         </WalletProvider>

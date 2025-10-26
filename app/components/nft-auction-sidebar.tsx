@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useCurrentAccount, useSuiClient, useSignAndExecuteTransaction } from "@mysten/dapp-kit";
-import { queryTimeSlotsByOwner, TimeSlotInfo, mistToDollars, placeBidTx, setInstructionsTx } from "@/lib/sui/time-auction";
+import { queryTimeSlotsByOwner, TimeSlotInfo, mistToDollars, placeBidTx, setInstructionsTx, endAuctionTx } from "@/lib/sui/time-auction";
 
 interface NFTAuctionSidebarProps {
   streamerAddress: string;
@@ -20,6 +20,7 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
   const [instructions, setInstructions] = useState("");
   const [isBidding, setIsBidding] = useState(false);
   const [isSettingInstructions, setIsSettingInstructions] = useState(false);
+  const [isFinalizing, setIsFinalizing] = useState(false);
 
   const fetchTimeSlots = async () => {
     try {
@@ -45,6 +46,15 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
     const startTime = Number(slot.startTime);
     const endTime = startTime + Number(slot.durationMs);
     const auctionEnd = Number(slot.auctionEnd);
+
+    // Debug logging
+    console.log('Slot status check:', {
+      now: new Date(now).toISOString(),
+      startTime: new Date(startTime).toISOString(),
+      endTime: new Date(endTime).toISOString(),
+      durationMs: slot.durationMs,
+      nowAfterEnd: now >= endTime
+    });
 
     if (now >= startTime && now < endTime) {
       return "LIVE NOW";
@@ -173,6 +183,38 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
     return isWinner(slot) && now >= auctionEnd;
   };
 
+  const handleFinalizeAuction = async (slot: TimeSlotInfo) => {
+    if (!account) {
+      alert("Please connect your wallet");
+      return;
+    }
+
+    setIsFinalizing(true);
+
+    try {
+      const tx = endAuctionTx(slot.objectId);
+
+      signAndExecuteTransaction(
+        { transaction: tx },
+        {
+          onSuccess: () => {
+            alert("Auction finalized successfully!");
+            fetchTimeSlots();
+          },
+          onError: (error) => {
+            console.error("Failed to finalize auction:", error);
+            alert(`Failed to finalize auction: ${error.message}`);
+          },
+        }
+      );
+    } catch (error) {
+      console.error("Error finalizing auction:", error);
+      alert("Failed to finalize auction");
+    } finally {
+      setIsFinalizing(false);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="w-80 bg-gray-900 border-l border-gray-800 p-4">
@@ -242,6 +284,16 @@ export function NFTAuctionSidebar({ streamerAddress }: NFTAuctionSidebarProps) {
                     className="w-full bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-2 rounded transition duration-200"
                   >
                     PLACE BID
+                  </button>
+                )}
+
+                {status === "BIDDING CLOSED" && account && (
+                  <button
+                    onClick={() => handleFinalizeAuction(slot)}
+                    disabled={isFinalizing}
+                    className="w-full bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-700 text-white text-sm font-bold py-2 rounded transition duration-200"
+                  >
+                    {isFinalizing ? "Finalizing..." : "FINALIZE AUCTION"}
                   </button>
                 )}
 

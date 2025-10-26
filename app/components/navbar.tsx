@@ -36,7 +36,7 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav className="bg-gray-800 text-white p-4">
+    <nav className="bg-black text-white p-4">
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-6">
           <Link href="/" className="text-xl font-bold">

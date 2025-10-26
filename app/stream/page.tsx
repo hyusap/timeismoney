@@ -5,6 +5,33 @@ import { LiveKitRoom, useLocalParticipant } from "@livekit/components-react";
 import { createLocalTracks, Track } from "livekit-client";
 import { useEffect, useState, useRef } from "react";
 
+// Mock wallet connection - replace with your actual wallet integration
+const useWallet = () => {
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+
+  const connectWallet = async () => {
+    // Mock wallet connection - replace with actual wallet logic
+    // For now, we'll simulate a wallet connection
+    const mockAddress = "0x" + Math.random().toString(16).substr(2, 40);
+    setWalletAddress(mockAddress);
+    setIsConnected(true);
+    console.log("Mock wallet connected:", mockAddress);
+  };
+
+  const disconnectWallet = () => {
+    setWalletAddress(null);
+    setIsConnected(false);
+  };
+
+  return {
+    walletAddress,
+    isConnected,
+    connectWallet,
+    disconnectWallet,
+  };
+};
+
 export default function StreamPage() {
   const [participantName, setParticipantName] = useState("");
   const [roomName, setRoomName] = useState("");
@@ -14,19 +41,27 @@ export default function StreamPage() {
   const [isStreaming, setIsStreaming] = useState(false);
   const streamingStarted = useRef(false);
 
-  // Generate a random UUID for room name
+  // Wallet connection
+  const { walletAddress, isConnected, connectWallet, disconnectWallet } =
+    useWallet();
+
+  // Generate room name - use wallet address if connected, otherwise random UUID
   const generateRoomId = () => {
+    if (isConnected && walletAddress) {
+      return walletAddress;
+    }
     return "room-" + crypto.randomUUID();
   };
 
   const connectToRoom = async () => {
-    if (!participantName.trim()) {
-      alert("Please enter your name");
+    if (!isConnected) {
+      alert("Please connect your wallet first");
       return;
     }
 
-    // Generate room ID if not provided
-    const finalRoomName = roomName.trim() || generateRoomId();
+    // Use wallet address as room name and participant name
+    const finalRoomName = walletAddress!;
+    const participantName = walletAddress!.slice(0, 8) + "..."; // Short version for display
     setRoomName(finalRoomName);
 
     try {
@@ -36,7 +71,7 @@ export default function StreamPage() {
         body: JSON.stringify({
           room_name: finalRoomName,
           metadata: {
-            creator_identity: participantName.trim(),
+            creator_identity: participantName,
             enable_chat: true,
             allow_participation: true,
           },
@@ -56,44 +91,44 @@ export default function StreamPage() {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center">
         <div className="bg-gray-800 p-8 rounded-lg shadow-lg max-w-md w-full">
-          <h1 className="text-2xl font-bold text-white mb-6 text-center">
-            Streaming Setup
+          <h1 className="text-2xl font-bold text-white mb-8 text-center">
+            Start Streaming
           </h1>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Your Name
-              </label>
-              <input
-                type="text"
-                value={participantName}
-                onChange={(e) => setParticipantName(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Enter your name"
-              />
+
+          {!isConnected ? (
+            <div className="space-y-4">
+              <div className="text-center text-gray-300 mb-6">
+                Connect your wallet to start streaming
+              </div>
+              <button
+                onClick={connectWallet}
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 px-4 rounded-md transition duration-200"
+              >
+                Connect Wallet
+              </button>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Room Name (Optional)
-              </label>
-              <input
-                type="text"
-                value={roomName}
-                onChange={(e) => setRoomName(e.target.value)}
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Leave empty for random room ID"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                If empty, a random room ID will be generated
-              </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="text-center text-gray-300 mb-2">
+                Wallet Connected
+              </div>
+              <div className="bg-black text-white font-mono text-sm p-3 rounded border border-gray-600 text-center">
+                {walletAddress}
+              </div>
+              <button
+                onClick={connectToRoom}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 px-4 rounded-md transition duration-200"
+              >
+                Start Stream
+              </button>
+              <button
+                onClick={disconnectWallet}
+                className="w-full text-gray-400 hover:text-gray-300 text-sm py-2 transition duration-200"
+              >
+                Disconnect Wallet
+              </button>
             </div>
-            <button
-              onClick={connectToRoom}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition duration-200"
-            >
-              Start Streaming
-            </button>
-          </div>
+          )}
         </div>
       </div>
     );
@@ -244,9 +279,11 @@ function StreamingContent({
           {isStreaming ? "Your stream is now live!" : "Starting stream..."}
         </p>
         <p className="text-gray-400 text-sm mt-2">
-          Share this room with viewers:{" "}
-          <span className="font-mono text-blue-400">{roomName}</span>
+          Share this room with viewers:
         </p>
+        <div className="bg-black text-white font-mono text-sm p-2 rounded mt-2 border border-gray-600">
+          {roomName}
+        </div>
         <p className="text-gray-500 text-xs mt-1">
           Orientation: {orientation}°
         </p>

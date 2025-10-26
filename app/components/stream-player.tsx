@@ -282,7 +282,7 @@ export function StreamPlayer({ viewerAddress }: StreamPlayerProps = {}) {
       />
 
       {/* Command Chat Box - Bottom of screen */}
-      <div className="absolute bottom-4 left-4 right-4 z-50">
+      <div className="absolute bottom-24 left-4 right-4 z-50">
         <div className="max-w-md">
           {/* Debug indicator */}
           <div className="bg-blue-900/90 border border-blue-500 rounded-t px-3 py-1 mb-1">

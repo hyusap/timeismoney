@@ -48,29 +48,16 @@ export function NFTAuctionSidebar({
 
       const now = Date.now();
 
-      // Filter: Keep only upcoming/active slots + last 5 completed
+      // Filter: Keep only upcoming/active slots (no completed)
       const upcoming = slots.filter((slot) => {
         const endTime = Number(slot.startTime) + Number(slot.durationMs);
         return endTime > now;
       });
 
-      const completed = slots.filter((slot) => {
-        const endTime = Number(slot.startTime) + Number(slot.durationMs);
-        return endTime <= now;
-      });
-
       // Sort upcoming by start time (newest first for upcoming)
       upcoming.sort((a, b) => Number(b.startTime - a.startTime));
 
-      // Get last 5 completed (most recent)
-      const recentCompleted = completed
-        .sort((a, b) => Number(b.startTime - a.startTime))
-        .slice(0, 5);
-
-      // Put upcoming first (latest at top), then recent completed at bottom
-      const filtered = [...upcoming, ...recentCompleted];
-
-      setTimeSlots(filtered);
+      setTimeSlots(upcoming);
     } catch (error) {
       console.error("Failed to fetch time slots:", error);
     } finally {
@@ -229,18 +216,18 @@ export function NFTAuctionSidebar({
     });
   };
 
-  const formatRelativeTime = (timestamp: bigint) => {
+  const formatRelativeTime = (slot: TimeSlotInfo) => {
     const now = Date.now();
-    const slotTime = Number(timestamp);
-    const diffMs = slotTime - now;
+    const startTime = Number(slot.startTime);
+    const endTime = startTime + Number(slot.durationMs);
+    const diffMs = startTime - now;
 
-    // If in the past, show "LIVE" or "ENDED"
+    // If in the past, check if slot is still active or completed
     if (diffMs < 0) {
-      const endTime = slotTime + Number(900000); // 15 min duration
       if (now < endTime) {
         return "LIVE NOW";
       }
-      return "- ENDED";
+      return "ENDED";
     }
 
     const diffMinutes = Math.floor(diffMs / 60000);
@@ -292,11 +279,6 @@ export function NFTAuctionSidebar({
             })}
           </div>
         </div>
-        <p className="text-gray-400 text-xs">
-          {isStreamer
-            ? "Your time slots"
-            : `Bid on ${streamerAddress.slice(0, 8)}...'s time`}
-        </p>
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -313,15 +295,15 @@ export function NFTAuctionSidebar({
             return (
               <div
                 key={slot.objectId}
-                className={`bg-gray-800 rounded-lg p-4 border-2 ${
-                  winner ? "border-green-500" : "border-gray-700"
+                className={`bg-transparent rounded-lg p-4 border-[1px] ${
+                  winner ? "border-green-500" : "border-white/20"
                 } hover:border-red-500 transition-colors`}
               >
                 {/* Time and Status */}
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <div className="text-white text-sm font-semibold">
-                      {formatRelativeTime(slot.startTime)}
+                      {formatRelativeTime(slot)}
                     </div>
                     <div className="text-gray-400 text-xs">
                       {formatTime(slot.startTime)}
@@ -355,9 +337,11 @@ export function NFTAuctionSidebar({
                 )}
 
                 {/* Current Bid - Secondary */}
-                <div className="bg-gray-900 rounded p-2 mb-3">
-                  <div className="text-gray-400 text-xs">Current Bid</div>
-                  <div className="text-green-400 font-bold">
+                <div className="">
+                  <div className="text-gray-400 text-xs font-mono uppercase">
+                    Current Bid
+                  </div>
+                  <div className="text-green-400 font-mono font-bold text-2xl">
                     {slot.currentBid > BigInt(0)
                       ? `$${mistToDollars(slot.currentBid).toFixed(2)}`
                       : `$${mistToDollars(slot.minBid).toFixed(2)}`}

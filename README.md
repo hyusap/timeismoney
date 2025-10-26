@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Time is Money ⏰💰
 
-## Getting Started
+> *"What if we took 'time is money' literally?"*
 
-First, run the development server:
+A dystopian social commentary platform built as a Black Mirror-style parody exploring the commodification of human time and labor.
+
+## 🎭 The Concept
+
+**Time is Money** takes the phrase to its extreme, logical conclusion:
+
+1. **Your day gets split into 15-minute chunks**
+2. **Anyone can bid on your time** using blockchain-based auctions (Sui)
+3. **Highest bidder gains control** for that 15 minutes:
+   - Watch you through your camera
+   - Give you instructions and tasks
+   - Direct your actions in real-time
+4. **You comply** (for the money, of course)
+
+This is intentionally dystopian as **social commentary and parody** - a critique of how modern capitalism commodifies every aspect of human existence. Lean into the discomfort.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Next.js 16.0.0** - React framework
+- **React 19.2.0** - UI library
+- **TypeScript** - Type safety
+- **Tailwind CSS v4** - Styling
+- **LiveKit** - Real-time video/audio streaming
+- **Sui Blockchain** - Decentralized bidding and payment system
+- **Bun** - Package manager and runtime
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- [Bun](https://bun.sh/) installed
+
+### Run Development Server
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to see the platform.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Other Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+bun run build  # Build for production
+bun start      # Start production server
+bun run lint   # Run ESLint
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## 📖 Documentation
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- [Sui TypeScript SDK](https://sdk.mystenlabs.com/typescript)
+- [LiveKit Documentation](https://docs.livekit.io/)
+- [Next.js Documentation](https://nextjs.org/docs)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+## ⚠️ Disclaimer
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+This project is **artistic commentary and parody**. It's meant to provoke thought about labor commodification, not to be implemented as a real business model. The dystopian nature is intentional.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+*"In a world where everything has a price, what happens when you put yourself on the market?"*

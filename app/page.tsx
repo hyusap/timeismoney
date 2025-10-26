@@ -2,155 +2,129 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ConnectButton, useCurrentAccount, useSuiClient } from "@mysten/dapp-kit";
-import { queryTimeSlots, TimeSlotInfo, mistToDollars } from "@/lib/sui/time-auction";
+import { StreamPreview } from "./components/stream-preview";
+
+import { ConnectButton, useCurrentAccount } from "@mysten/dapp-kit";
+
+interface ActiveRoom {
+  name: string;
+  numParticipants: number;
+  creationTime: number;
+}
 
 export default function Home() {
   const account = useCurrentAccount();
-  const client = useSuiClient();
-  const [timeSlots, setTimeSlots] = useState<TimeSlotInfo[]>([]);
+  const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchTimeSlots = async () => {
+  const fetchActiveRooms = async () => {
     try {
-      const slots = await queryTimeSlots(client);
-      // Filter to show only active auctions (not ended, not claimed)
-      const activeSlots = slots.filter(slot => {
-        const now = Date.now();
-        return BigInt(now) < slot.auctionEnd && !slot.claimed;
-      });
-      setTimeSlots(activeSlots);
+      console.log("Fetching active rooms...");
+      const response = await fetch("/api/active_rooms");
+      console.log("Response status:", response.status);
+
+      if (response.ok) {
+        const rooms = await response.json();
+        //console.log("Fetched rooms:", rooms);
+        setActiveRooms(rooms);
+      } else {
+        console.error("Failed to fetch rooms, status:", response.status);
+      }
     } catch (error) {
-      console.error("Failed to fetch time slots:", error);
+      console.error("Failed to fetch active rooms:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchTimeSlots();
-    const interval = setInterval(fetchTimeSlots, 10000);
+    fetchActiveRooms();
+    // Refresh every 5 seconds for live updates
+    const interval = setInterval(fetchActiveRooms, 5000);
     return () => clearInterval(interval);
   }, []);
-
-  const formatTime = (timestamp: bigint) => {
-    const date = new Date(Number(timestamp));
-    return date.toLocaleString();
-  };
-
-  const getTimeUntilSlotStarts = (startTime: bigint) => {
-    const now = Date.now();
-    const diff = Number(startTime) - now;
-    if (diff <= 0) return "Started";
-
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-    return `${hours}h ${mins}m`;
-  };
 
   return (
     <div className="min-h-screen bg-black">
       <div className="max-w-7xl mx-auto p-6">
         <div className="text-center mb-8">
-          <h1 className="text-5xl font-bold text-red-500 mb-2">
-            TIME IS MONEY
-          </h1>
-          <p className="text-xl text-gray-400 italic mb-6">
-            "Buy someone's life, 15 minutes at a time"
+          <h1 className="text-4xl font-bold text-white mb-4">Live Streams</h1>
+          <p className="text-xl text-gray-300">
+            {isLoading
+              ? "Loading streams..."
+              : `${activeRooms.length} active streams`}
           </p>
           {account && (
-            <div className="text-gray-300 text-sm mb-4">
-              Connected: {account.address.slice(0, 8)}...{account.address.slice(-6)}
+            <div className="text-white">
+              <p>Connected to {account.address}</p>
             </div>
           )}
-          <div className="flex justify-center gap-4 mb-6">
-            <ConnectButton />
-            <Link
-              href="/sell"
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-md font-bold transition duration-200"
-            >
-              SELL YOUR TIME
-            </Link>
-          </div>
+          <ConnectButton />
         </div>
 
         {isLoading ? (
           <div className="flex justify-center items-center h-64">
-            <div className="text-white text-xl">Loading auctions...</div>
+            <div className="text-white text-xl">Loading live streams...</div>
           </div>
-        ) : timeSlots.length === 0 ? (
+        ) : activeRooms.length === 0 ? (
           <div className="text-center py-16">
-            <div className="text-6xl mb-4">⏰</div>
+            <div className="text-6xl mb-4">📺</div>
             <h2 className="text-2xl font-bold text-white mb-4">
-              No Active Auctions
+              No Live Streams
             </h2>
             <p className="text-gray-300 mb-8">
-              Be the first to sell your time
+              Be the first to start streaming!
             </p>
             <Link
-              href="/sell"
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-md font-bold transition duration-200"
+              href="/stream"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
             >
-              SELL YOUR TIME
+              Start Streaming
             </Link>
           </div>
         ) : (
-          <div>
-            <h2 className="text-2xl font-bold text-white mb-4">
-              Active Time Auctions ({timeSlots.length})
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {timeSlots.map((slot) => (
-                <div
-                  key={slot.objectId}
-                  className="bg-gray-900 border border-gray-800 hover:border-red-600 rounded-lg p-6 transition-all duration-200"
-                >
-                  <div className="mb-4">
-                    <div className="text-gray-500 text-sm mb-1">Slot starts at</div>
-                    <div className="text-white font-bold">
-                      {formatTime(slot.startTime)}
-                    </div>
-                    <div className="text-gray-400 text-sm">
-                      15 minutes
-                    </div>
-                  </div>
-
-                  <div className="bg-gray-800 rounded p-4 mb-4">
-                    <div className="text-gray-400 text-sm mb-1">Current Bid</div>
-                    <div className="text-2xl font-bold text-green-400">
-                      {slot.currentBid > 0n
-                        ? `$${mistToDollars(slot.currentBid).toFixed(6)}`
-                        : `Min: $${mistToDollars(slot.minBid).toFixed(6)}`}
-                    </div>
-                    {slot.currentBidder && (
-                      <div className="text-gray-500 text-xs mt-1">
-                        by {slot.currentBidder.slice(0, 8)}...
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex justify-between items-center text-sm mb-4">
-                    <div className="text-gray-400">Bidding closes in</div>
-                    <div className="text-yellow-500 font-bold">
-                      {getTimeUntilSlotStarts(slot.startTime)}
-                    </div>
-                  </div>
-
-                  <Link
-                    href={`/auction/${slot.objectId}`}
-                    className="block w-full bg-red-600 hover:bg-red-700 text-white text-center font-bold py-3 rounded transition duration-200"
-                  >
-                    PLACE BID
-                  </Link>
-
-                  <div className="text-gray-600 text-xs mt-3">
-                    Owner: {slot.timeOwner.slice(0, 8)}...
-                  </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {activeRooms.map((room) => (
+              <Link
+                key={room.name}
+                href={`/view/${encodeURIComponent(room.name)}`}
+                className="group bg-gray-800 hover:bg-gray-700 rounded-lg overflow-hidden transition-all duration-200 hover:scale-105"
+              >
+                <div className="aspect-video bg-gray-700 relative">
+                  {/* Actual video preview */}
+                  <StreamPreview
+                    roomName={room.name}
+                    className="w-full h-full"
+                  />
                 </div>
-              ))}
-            </div>
+              </Link>
+            ))}
           </div>
         )}
+
+        {/* Quick actions */}
+        <div className="mt-12 text-center">
+          <div className="flex justify-center space-x-4">
+            <Link
+              href="/stream"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
+            >
+              Start Your Stream
+            </Link>
+            <Link
+              href="/viewer"
+              className="bg-gray-700 hover:bg-gray-600 text-white px-6 py-3 rounded-md font-medium transition duration-200"
+            >
+              Browse All Streams
+            </Link>
+            <Link
+              href="/auctions"
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-md font-medium transition duration-200"
+            >
+              Time Auctions
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

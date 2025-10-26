@@ -153,7 +153,7 @@ export default function SellTimePage() {
 
         <div className="mt-8 text-center">
           <a
-            href="/"
+            href="/auctions"
             className="text-gray-500 hover:text-gray-300 underline"
           >
             View active auctions

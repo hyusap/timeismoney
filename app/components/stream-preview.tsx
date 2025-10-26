@@ -35,11 +35,11 @@ function PreviewContent({ roomName, className }: StreamPreviewProps) {
   if (roomState !== "connected") {
     return (
       <div
-        className={`absolute inset-0 bg-gray-700 flex items-center justify-center ${className}`}
+        className={`absolute inset-0 bg-gray-200 flex items-center justify-center ${className}`}
       >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-          <div className="text-white text-xs">Connecting...</div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto mb-2"></div>
+          <div className="text-gray-600 text-xs">Connecting...</div>
         </div>
       </div>
     );
@@ -48,13 +48,13 @@ function PreviewContent({ roomName, className }: StreamPreviewProps) {
   if (!hasVideo) {
     return (
       <div
-        className={`absolute inset-0 bg-gray-700 flex items-center justify-center ${className}`}
+        className={`absolute inset-0 bg-gray-200 flex items-center justify-center ${className}`}
       >
         <div className="text-center">
-          <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
-            <span className="text-white text-lg">📹</span>
+          <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-2">
+            <span className="text-gray-600 text-lg">📹</span>
           </div>
-          <div className="text-white text-xs">No Video</div>
+          <div className="text-gray-600 text-xs">No Video</div>
         </div>
       </div>
     );
@@ -147,11 +147,11 @@ export function StreamPreview({
   if (isLoading) {
     return (
       <div
-        className={`absolute inset-0 bg-gray-700 flex items-center justify-center ${className}`}
+        className={`absolute inset-0 bg-gray-200 flex items-center justify-center ${className}`}
       >
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-          <div className="text-white text-xs">Loading...</div>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-600 mx-auto mb-2"></div>
+          <div className="text-gray-600 text-xs">Loading...</div>
         </div>
       </div>
     );
@@ -160,13 +160,13 @@ export function StreamPreview({
   if (!token || !serverUrl) {
     return (
       <div
-        className={`absolute inset-0 bg-gray-700 flex items-center justify-center ${className}`}
+        className={`absolute inset-0 bg-gray-200 flex items-center justify-center ${className}`}
       >
         <div className="text-center">
-          <div className="w-12 h-12 bg-gray-600 rounded-full flex items-center justify-center mx-auto mb-2">
-            <span className="text-white text-lg">❌</span>
+          <div className="w-12 h-12 bg-gray-300 rounded-full flex items-center justify-center mx-auto mb-2">
+            <span className="text-gray-600 text-lg">❌</span>
           </div>
-          <div className="text-white text-xs">Preview Unavailable</div>
+          <div className="text-gray-600 text-xs">Preview Unavailable</div>
         </div>
       </div>
     );

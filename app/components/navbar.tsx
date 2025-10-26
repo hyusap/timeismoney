@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect } from "react";
-import { useCurrentAccount, useWallets } from "@mysten/dapp-kit";
+import { useCurrentAccount, ConnectButton } from "@mysten/dapp-kit";
 
 interface ActiveRoom {
   name: string;
@@ -13,28 +13,7 @@ interface ActiveRoom {
 export function Navbar() {
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showWalletDropdown, setShowWalletDropdown] = useState(false);
   const account = useCurrentAccount();
-  const wallets = useWallets();
-  const currentWallet = wallets[0];
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      if (!target.closest(".wallet-dropdown")) {
-        setShowWalletDropdown(false);
-      }
-    };
-
-    if (showWalletDropdown) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showWalletDropdown]);
 
   const fetchActiveRooms = async () => {
     setIsLoading(true);
@@ -73,13 +52,6 @@ export function Navbar() {
 
             <p className="font-cormorant italic">Human Capital</p>
           </Link>
-
-          {/* <Link
-            href="/stream"
-            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition duration-200"
-          >
-            Start Streaming
-          </Link> */}
         </div>
 
         {/* Search Bar in Middle */}
@@ -113,11 +85,11 @@ export function Navbar() {
         </div>
 
         <div className="flex items-center space-x-4">
-          {/* Wallet Button or Start Stream */}
-          {account ? (
+          {/* Start Streaming Button - Only show when connected */}
+          {account && (
             <Link
               href="/stream"
-              className="flex items-center justify-center bg-white text-gray-900 p-2 rounded-full hover:bg-gray-100 transition"
+              className="flex items-center space-x-2 justify-center bg-white text-gray-900 px-4 py-2 rounded-full hover:bg-gray-100 transition"
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -133,35 +105,42 @@ export function Navbar() {
                   d="M15.75 10.5l4.72-4.72a.75.75 0 011.28.53v11.38a.75.75 0 01-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 002.25-2.25v-9a2.25 2.25 0 00-2.25-2.25h-9A2.25 2.25 0 002.25 7.5v9a2.25 2.25 0 002.25 2.25z"
                 />
               </svg>
-
               <span className="tracking-tighter font-bold">Clock In</span>
             </Link>
-          ) : (
-            <button
-              onClick={async () => {
-                if (currentWallet?.features["standard:connect"]) {
-                  await currentWallet.features["standard:connect"].connect();
-                }
-              }}
-              className="flex items-center space-x-2 rounded-md border border-gray-600 px-3 py-2 hover:bg-gray-800 transition"
-            >
-              <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-              <span>Connect Wallet</span>
-            </button>
           )}
 
-          {/* Hamburger Menu */}
-          <button
-            className="flex flex-col space-y-1 p-2 rounded-md hover:bg-gray-800 transition"
-            onClick={() => {
-              // Add hamburger menu functionality here
-              console.log("Hamburger menu clicked");
-            }}
-          >
-            <div className="w-5 h-0.5 bg-white"></div>
-            <div className="w-5 h-0.5 bg-white"></div>
-            <div className="w-5 h-0.5 bg-white"></div>
-          </button>
+          {/* Wallet Connect Button */}
+          <ConnectButton />
+
+          {activeRooms.length > 0 && (
+            <div className="relative group">
+              <button className="text-gray-300 hover:text-white text-sm">
+                View Rooms ↓
+              </button>
+              <div className="absolute right-0 mt-2 w-64 bg-gray-700 rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                <div className="p-2">
+                  {activeRooms.map((room) => (
+                    <Link
+                      key={room.name}
+                      href={`/view/${encodeURIComponent(room.name)}`}
+                      className="block p-2 hover:bg-gray-600 rounded transition duration-200"
+                    >
+                      <div className="flex justify-between items-center">
+                        <span className="font-medium">{room.name}</span>
+                        <span className="text-xs text-gray-400">
+                          {room.numParticipants} viewers
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        Started{" "}
+                        {new Date(room.creationTime).toLocaleTimeString()}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </nav>

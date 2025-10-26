@@ -36,11 +36,15 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav className="bg-black text-white p-4">
-      <div className="max-w-7xl mx-auto flex justify-between items-center">
+    <nav className="bg-white text-black p-4">
+      <div className="mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-6">
-          <Link href="/" className="text-xl font-bold">
-            TimeIsMoney
+          <Link
+            href="/"
+            className="text-2xl font-semibold flex items-center space-x-2"
+          >
+            <div className="w-7 h-7 bg-black rounded-full"></div>
+            <span>TIM</span>
           </Link>
 
           <Link
@@ -48,13 +52,6 @@ export function Navbar() {
             className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-md transition duration-200"
           >
             Start Streaming
-          </Link>
-
-          <Link
-            href="/viewer"
-            className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded-md transition duration-200"
-          >
-            Browse Streams
           </Link>
         </div>
 

@@ -59,20 +59,20 @@ export function Navbar() {
   }, []);
 
   return (
-    <nav className="text-black p-4" style={{ background: '#e0e5ec' }}>
+    <nav className="text-white p-4 bg-black">
       <div className="mx-auto flex justify-between items-center">
         <div className="flex items-center space-x-6">
           <Link
             href="/"
             className="text-2xl font-semibold flex items-center space-x-2"
           >
-            <div className="w-7 h-7 bg-black rounded-full"></div>
+            <div className="w-7 h-7 bg-white rounded-full"></div>
             <p>Human Capital</p>
           </Link>
 
           <Link
             href="/stream"
-            className="bg-black hover:bg-gray-800 text-white px-4 py-2 rounded-md transition duration-200"
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-md transition duration-200"
           >
             Start Streaming
           </Link>
@@ -83,7 +83,7 @@ export function Navbar() {
           <div className="relative wallet-dropdown">
             <button
               onClick={() => setShowWalletDropdown(!showWalletDropdown)}
-              className="flex items-center space-x-2 rounded-md border border-gray-400 px-3 py-2 hover:bg-gray-200 transition"
+              className="flex items-center space-x-2 rounded-md border border-gray-600 px-3 py-2 hover:bg-gray-800 transition"
             >
               {account ? (
                 <>
@@ -100,15 +100,15 @@ export function Navbar() {
 
             {/* Dropdown Menu */}
             {showWalletDropdown && (
-              <div className="absolute right-0 mt-2 w-80 border border-gray-300 rounded-lg shadow-lg z-50" style={{ background: '#e0e5ec' }}>
+              <div className="absolute right-0 mt-2 w-80 border border-gray-600 rounded-lg shadow-lg z-50 bg-gray-900">
                 {account ? (
                   <>
-                    <div className="p-4 border-b border-gray-200">
+                    <div className="p-4 border-b border-gray-700">
                       <div className="flex items-center space-x-2 mb-2">
                         <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="font-semibold">Connected</span>
+                        <span className="font-semibold text-white">Connected</span>
                       </div>
-                      <div className="text-sm text-gray-600 break-all">
+                      <div className="text-sm text-gray-400 break-all">
                         {account.address}
                       </div>
                     </div>
@@ -122,7 +122,7 @@ export function Navbar() {
                           }
                           setShowWalletDropdown(false);
                         }}
-                        className="w-full text-left px-3 py-2 text-red-600 hover:bg-red-50 rounded-md transition"
+                        className="w-full text-left px-3 py-2 text-red-500 hover:bg-gray-800 rounded-md transition"
                       >
                         Disconnect Wallet
                       </button>
@@ -130,7 +130,7 @@ export function Navbar() {
                   </>
                 ) : (
                   <div className="p-4">
-                    <p className="text-sm text-gray-600 mb-3">
+                    <p className="text-sm text-gray-400 mb-3">
                       Connect your wallet to start streaming
                     </p>
                     <button
@@ -142,7 +142,7 @@ export function Navbar() {
                         }
                         setShowWalletDropdown(false);
                       }}
-                      className="w-full bg-black text-white px-4 py-2 rounded-md hover:bg-gray-800 transition"
+                      className="w-full bg-gray-800 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition"
                     >
                       Connect Wallet
                     </button>

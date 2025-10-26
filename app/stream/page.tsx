@@ -265,7 +265,7 @@ export default function StreamPage() {
 
   if (!authToken || !roomToken) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6">
+      <div className="min-h-screen bg-white flex items-center justify-center p-6">
         <div className="bg-gray-900 border-2 border-red-600 rounded-lg p-8 max-w-2xl w-full">
           <h1 className="text-4xl font-bold text-red-500 mb-2 text-center">
             START STREAMING
